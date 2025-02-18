@@ -32,7 +32,7 @@ jobs:
         run: javac Main.java
 
       - name: Run and Interact with Java Code
-        working-directory: 'Lógica de Programação/Desafio 1' # Correct path
+        working-directory: 'Lógica de Programação/Desafio 1/src' # Correct path
         id: run-java
         run: |
           java main << EOF > output.txt
