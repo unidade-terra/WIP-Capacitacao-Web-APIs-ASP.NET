@@ -35,7 +35,7 @@ jobs:
         working-directory: 'Lógica de Programação/Desafio 1/out/production/ConsultadeCEP' # Correct path
         id: run-java
         run: |
-          java main << EOF > output.txt
+          Main << EOF > output.txt
           1
           2
           3
