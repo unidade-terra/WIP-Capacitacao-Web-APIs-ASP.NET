@@ -29,7 +29,7 @@ jobs:
 
       - name: Compile Java Code
         working-directory: 'Lógica de Programação/Desafio 1/src' # Correct path!
-        run: javac main.java
+        run: javac Main.java
 
       - name: Run and Interact with Java Code
         working-directory: 'Lógica de Programação/Desafio 1' # Correct path
