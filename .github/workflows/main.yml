@@ -32,10 +32,10 @@ jobs:
         run: javac Main.java
 
       - name: Run and Interact with Java Code
-        working-directory: 'Lógica de Programação/Desafio 1/out/production/ConsultadeCEP' # Correct path
+        working-directory: 'Lógica de Programação/Desafio 1' # Correct path
         id: run-java
         run: |
-          Main << EOF > output.txt
+          java Main << EOF > output.txt
           1
           2
           3
