@@ -47,11 +47,15 @@ jobs:
         if: always() && steps.run-java.outcome != 'failure'
         working-directory: 'Lógica de Programação/Desafio 1' # Correct path
         run: |
-          if grep -F $'1\n2\n3\n\n3\n3\n1' output.txt; then  # Replace with expected string
-            echo "Test passed (grep)!"
+          # Create a file with the expected output (avoids newline issues in the if)
+          echo -e "1\n2\n3\n\n3\n3\n1" > expected.txt  # -e interprets escape sequences
+        
+          if grep -Ff expected.txt output.txt; then  # -f uses a file for patterns
+            echo "Test passed (grep -Ff)!"
           else
-            echo "Test failed (grep)!"
+            echo "Test failed (grep -Ff)!"
             exit 1
+          fi
 
       - name: Upload Output as Artifact (Optional)
         uses: actions/upload-artifact@v4
