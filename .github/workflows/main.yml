@@ -47,7 +47,7 @@ jobs:
         if: always() && steps.run-java.outcome != 'failure'
         working-directory: 'Lógica de Programação/Desafio 1' # Correct path
         run: |
-          if grep "1\n2\n3\n\n3\n3\n1" output.txt; then  # Replace with expected string
+          if grep -F "1\n2\n3\n\n3\n3\n1" output.txt; then  # Replace with expected string
             echo "Test passed (grep)!"
           else
             echo "Test failed (grep)!"
