@@ -35,7 +35,7 @@ jobs:
         working-directory: 'Lógica de Programação/Desafio 1' # Correct path
         id: run-java
         run: |
-          java Main << EOF > output.txt
+          java main << EOF > output.txt
           1
           2
           3
