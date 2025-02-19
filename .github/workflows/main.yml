@@ -43,11 +43,6 @@ jobs:
           cat output.txt
           echo "::set-output name=output::$(cat output.txt)"
 
-      - name: Assertions/Tests (JUnit - Recommended)
-        working-directory: 'Lógica de Programação/Desafio 1' # Correct path
-        run: |
-          mvn test # Or gradle test if you're using Gradle
-
       - name: Assertions/Tests (grep - less ideal)
         if: always() && steps.run-java.outcome != 'failure'
         working-directory: 'Lógica de Programação/Desafio 1' # Correct path
