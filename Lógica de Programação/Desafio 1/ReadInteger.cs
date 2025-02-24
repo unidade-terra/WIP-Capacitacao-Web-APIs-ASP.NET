@@ -5,11 +5,10 @@ namespace ConsoleApp1.Utils
 {
     public class Readers
     {
-        public static int ReadInteger(string prompt = "Enter an integer: ")
+        public static int ReadInteger()
         {
             while (true)
             {
-                Console.Write(prompt);
                 string input = Console.ReadLine();
 
                 if (int.TryParse(input, out int result))
