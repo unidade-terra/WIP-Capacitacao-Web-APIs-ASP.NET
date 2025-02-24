@@ -30,48 +30,39 @@ jobs:
         working-directory: WIP-Capacitacao-Web-APIs-ASP.NET/Lógica de Programação/Desafio 1
         run: dotnet build --configuration Release
 
-      - name: Run C# code and verify output
+      - name: Run C# code and verify multi-line integer output
         working-directory: WIP-Capacitacao-Web-APIs-ASP.NET/Lógica de Programação/Desafio 1
         run: |
-          dotnet run -c Release | tee output.txt
-
-          # Example interaction (replace with your actual interaction logic)
-          echo "1" | dotnet run -c Release | tee interaction_output.txt
-          echo "2" | dotnet run -c Release | tee interaction_output.txt
-          echo "3" | dotnet run -c Release | tee interaction_output.txt
+          # Run C# code, providing input and capturing output
+          {
+            echo 1
+            echo 2
+            echo 3
+          } | dotnet run -c Release | tee output.txt
 
           # Read the actual output
           actual_output=$(cat output.txt)
 
-          # Define the expected output (replace with your actual expected output)
-          expected_output="123\n331\nYou entered: This is some input for the C# program" # Example
+          # Define the expected multi-line integer output
+          expected_output="123\n331" # Important: \n for newlines
 
-          # Compare the actual and expected outputs
+          # Compare the actual and expected outputs (multi-line comparison)
           if [[ "$actual_output" == "$expected_output" ]]; then
-            echo "Output verification successful!"
+            echo "Multi-line integer verification successful!"
           else
-            echo "Output verification failed!"
+            echo "Multi-line integer verification failed!"
             echo "Expected:"
             echo "$expected_output"
             echo "Actual:"
             echo "$actual_output"
-            exit 1 # Fail the workflow if the outputs don't match
+            exit 1
           fi
 
-          # Optional: Check Interaction output
-          interaction_output=$(cat interaction_output.txt)
-          expected_interaction_output="Hello from C#!\nThis is line 2.\nYou entered: This is some input for the C# program" # Example
-
-          if [[ "$interaction_output" == "$expected_interaction_output" ]]; then
-            echo "Interaction output verification successful!"
-          else
-            echo "Interaction output verification failed!"
-            echo "Expected:"
-            echo "$expected_interaction_output"
-            echo "Actual:"
-            echo "$interaction_output"
-            exit 1 # Fail the workflow if the outputs don't match
-          fi
+      - name: Upload artifact (optional)
+        uses: actions/upload-artifact@v3
+        with:
+          name: output-files
+          path: WIP-Capacitacao-Web-APIs-ASP.NET/Lógica de Programação/Desafio 1/output.txt
 
       - name: Upload artifact (optional)
         uses: actions/upload-artifact@v4
