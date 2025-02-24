@@ -6,7 +6,7 @@ on:
       - main # Or your main branch name
     paths:
       - 'Lógica de Programação/Desafio 1/**'
-
+      - '.github/workflows/main.yml' # Trigger on workflow file changes
 jobs:
   build-and-run:
     runs-on: ubuntu-latest
