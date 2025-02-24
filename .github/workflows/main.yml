@@ -1,64 +1,78 @@
-name: Test Java Code (Desafio 1)
-  
+name: C# Code Execution and Verification
+
 on:
   push:
-    branches: [main] # Or your main branch name
+    branches:
+      - main # Or your main branch name
     paths:
-      - 'Lógica de Programação/Desafio 1/**' # Path to your folder
-      - '.github/workflows/main.yml' # Trigger on workflow file changes
-
-  pull_request:
-    branches: [main] # Or your main branch name
-    paths:
-      - 'Lógica de Programação/Desafio 1/**' # Path to your folder
-      - '.github/workflows/main.yml' # Trigger on workflow file changes
+      - 'Lógica de Programação/Desafio 1/**'
 
 jobs:
-  run-and-test:
+  build-and-run:
     runs-on: ubuntu-latest
-    if: github.event_name == 'push' || github.event_name == 'pull_request'
 
     steps:
-      - uses: actions/checkout@v3
-
-      - name: Set up JDK 17
-        uses: actions/setup-java@v3
+      - name: Checkout code
+        uses: actions/checkout@v3
         with:
-          java-version: '17'
-          distribution: 'temurin'
+          path: WIP-Capacitacao-Web-APIs-ASP.NET
 
-      - name: Compile Java Code
-        working-directory: 'Lógica de Programação/Desafio 1/src' # Correct path!
-        run: javac Main.java
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: '6.x' # Or your desired .NET version
 
-      - name: Run and Interact with Java Code
-        working-directory: 'Lógica de Programação/Desafio 1' # Correct path
-        id: run-java
+      - name: Restore dependencies
+        working-directory: WIP-Capacitacao-Web-APIs-ASP.NET/Lógica de Programação/Desafio 1
+        run: dotnet restore
+
+      - name: Build project
+        working-directory: WIP-Capacitacao-Web-APIs-ASP.NET/Lógica de Programação/Desafio 1
+        run: dotnet build --configuration Release
+
+      - name: Run C# code and verify output
+        working-directory: WIP-Capacitacao-Web-APIs-ASP.NET/Lógica de Programação/Desafio 1
         run: |
-          java Main << EOF > output.txt
-          1
-          2
-          3
-          EOF
-          cat output.txt
-          echo "::set-output name=output::$(cat output.txt)"
+          dotnet run -c Release | tee output.txt
 
-      - name: Assertions/Tests (grep - less ideal)
-        if: always() && steps.run-java.outcome != 'failure'
-        working-directory: 'Lógica de Programação/Desafio 1' # Correct path
-        run: |
-          # Create a file with the expected output (avoids newline issues in the if)
-          echo -e "1\n2\n3\n\n3\n3\n1" > expected.txt  # -e interprets escape sequences
-        
-          if grep -Ff expected.txt output.txt; then  # -f uses a file for patterns
-            echo "Test passed (grep -Ff)!"
+          # Example interaction (replace with your actual interaction logic)
+          echo "1\n2\n3" | dotnet run -c Release | tee interaction_output.txt
+
+          # Read the actual output
+          actual_output=$(cat output.txt)
+
+          # Define the expected output (replace with your actual expected output)
+          expected_output="123\n331\nYou entered: This is some input for the C# program" # Example
+
+          # Compare the actual and expected outputs
+          if [[ "$actual_output" == "$expected_output" ]]; then
+            echo "Output verification successful!"
           else
-            echo "Test failed (grep -Ff)!"
-            exit 1
+            echo "Output verification failed!"
+            echo "Expected:"
+            echo "$expected_output"
+            echo "Actual:"
+            echo "$actual_output"
+            exit 1 # Fail the workflow if the outputs don't match
           fi
 
-      - name: Upload Output as Artifact (Optional)
-        uses: actions/upload-artifact@v4
+          # Optional: Check Interaction output
+          interaction_output=$(cat interaction_output.txt)
+          expected_interaction_output="Hello from C#!\nThis is line 2.\nYou entered: This is some input for the C# program" # Example
+
+          if [[ "$interaction_output" == "$expected_interaction_output" ]]; then
+            echo "Interaction output verification successful!"
+          else
+            echo "Interaction output verification failed!"
+            echo "Expected:"
+            echo "$expected_interaction_output"
+            echo "Actual:"
+            echo "$interaction_output"
+            exit 1 # Fail the workflow if the outputs don't match
+          fi
+
+      - name: Upload artifact (optional)
+        uses: actions/upload-artifact@v3
         with:
-          name: output-file
-          path: 'Lógica de Programação/Desafio 1/output.txt' # Correct path
+          name: output-files
+          path: WIP-Capacitacao-Web-APIs-ASP.NET/Lógica de Programação/Desafio 1/output.txt
