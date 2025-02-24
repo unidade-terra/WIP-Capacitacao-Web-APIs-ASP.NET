@@ -20,7 +20,7 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: '6.x' # Or your desired .NET version
+          dotnet-version: '8.x' # Or your desired .NET version
 
       - name: Restore dependencies
         working-directory: WIP-Capacitacao-Web-APIs-ASP.NET/Lógica de Programação/Desafio 1
