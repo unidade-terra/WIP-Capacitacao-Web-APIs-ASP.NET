@@ -36,7 +36,7 @@ jobs:
           dotnet run -c Release | tee output.txt
 
           # Example interaction (replace with your actual interaction logic)
-          echo "1\n2\n3" | dotnet run -c Release | tee interaction_output.txt
+          echo "\n1\n2\n3" | dotnet run -c Release | tee interaction_output.txt
 
           # Read the actual output
           actual_output=$(cat output.txt)
