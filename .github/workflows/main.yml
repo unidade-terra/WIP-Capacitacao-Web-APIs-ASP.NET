@@ -44,7 +44,7 @@ jobs:
           actual_output=$(cat output.txt)
 
           # Define the expected multi-line integer output
-          expected_output="123\n331" # Important: \n for newlines
+          expected_output=$'123\n331' # Important: \n for newlines
 
           # Compare the actual and expected outputs (multi-line comparison)
           if [[ "$actual_output" == "$expected_output" ]]; then
