@@ -64,8 +64,4 @@ jobs:
           name: output-files
           path: WIP-Capacitacao-Web-APIs-ASP.NET/Lógica de Programação/Desafio 1/output.txt
 
-      - name: Upload artifact (optional)
-        uses: actions/upload-artifact@v4
-        with:
-          name: output-files
-          path: WIP-Capacitacao-Web-APIs-ASP.NET/Lógica de Programação/Desafio 1/output.txt
+    
