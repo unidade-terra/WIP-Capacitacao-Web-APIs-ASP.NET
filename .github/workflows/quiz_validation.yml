@@ -1,0 +1,88 @@
+name: Validar Quiz IoC, DIP e DI (Primeira Alternativa Correta)
+
+on:
+  push:
+    paths:
+      - '.github/workflows/quiz_validation.yml'
+
+jobs:
+  validar_quiz:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout do código
+        uses: actions/checkout@v2
+
+      - name: Obter conteúdo da issue
+        id: obter_issue
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const issueTitulo = "Desafio quiz: IoC, DIP e DI";
+            const issues = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'all',
+            });
+
+            const issue = issues.data.find(i => i.title === issueTitulo);
+
+            if (!issue) {
+              console.log(`Issue "${issueTitulo}" não encontrada.`);
+              return;
+            }
+
+            return issue.body;
+
+      - name: Validar respostas do quiz
+        id: validar_respostas
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const issueBody = ${{ steps.obter_issue.outputs.result }};
+            if (!issueBody) return;
+
+            const respostasCorretas = {
+              "1": "Uma disciplina.",
+              "2": "Sim.",
+              "3": "Um padrão de design que permite injetar dependências, proporcionando baixo acoplamento.",
+              "4": "IoC estabelece que as abstrações não devem depender de implementações concretas, enquanto DIP define que os módulos de alto nível não devem depender dos módulos de baixo nível."
+            };
+
+            const respostasUsuario = {};
+            const perguntas = issueBody.split("# ");
+
+            perguntas.slice(1).forEach(pergunta => {
+              const numeroPergunta = pergunta.split(" - ")[0];
+              const opcoes = pergunta.split("- [");
+
+              opcoes.slice(1).forEach(opcao => {
+                if (opcao.startsWith("x")) {
+                  respostasUsuario[numeroPergunta] = opcao.split("] ")[1].trim();
+                }
+              });
+            });
+
+            let feedback = "## Resultado do Quiz\n\n";
+            let todasCorretas = true;
+
+            for (const numeroPergunta in respostasCorretas) {
+              if (respostasUsuario[numeroPergunta] === respostasCorretas[numeroPergunta]) {
+                feedback += `✅ Pergunta ${numeroPergunta}: Resposta correta!\n`;
+              } else {
+                feedback += `❌ Pergunta ${numeroPergunta}: Resposta incorreta. Resposta correta: ${respostasCorretas[numeroPergunta]}\n`;
+                todasCorretas = false;
+              }
+            }
+
+            if (todasCorretas) {
+              feedback += "\nParabéns! Você acertou todas as perguntas do quiz.";
+            } else {
+              feedback += "\nPor favor, revise suas respostas e tente novamente.";
+            }
+
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: feedback,
+            });
