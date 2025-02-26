@@ -6,8 +6,8 @@ on:
       - '.github/workflows/quiz_validation.yml'
 
 permissions:
-  issues: read
-  contents: read
+  issues: write # Permissão de escrita para criar comentários
+  contents: read # Permissão de leitura para o checkout do código
 
 jobs:
   validar_quiz:
@@ -35,9 +35,7 @@ jobs:
               return;
             }
 
-            // Armazena o issue.number para uso posterior
             core.setOutput('issueNumber', issue.number);
-
             return issue.body;
 
       - name: Validar respostas do quiz
@@ -90,7 +88,6 @@ jobs:
             await github.rest.issues.createComment({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              // Usando o issueNumber obtido no passo anterior
               issue_number: ${{ steps.obter_issue.outputs.issueNumber }},
               body: feedback,
             });
