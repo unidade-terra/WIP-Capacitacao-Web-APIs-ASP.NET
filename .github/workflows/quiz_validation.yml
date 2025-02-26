@@ -4,7 +4,10 @@ on:
   push:
     paths:
       - '.github/workflows/quiz_validation.yml'
-
+permissions:
+  issues: read
+  contents: read # Adicionado para garantir o checkout do código
+  
 jobs:
   validar_quiz:
     runs-on: ubuntu-latest
