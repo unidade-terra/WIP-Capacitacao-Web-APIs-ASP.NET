@@ -107,11 +107,15 @@ jobs:
               const projectName = "@MateusKSC's board project"; // Nome do seu projeto
               const columnName = "Review"; // Nome da coluna "Review"
 
+              console.log(`Tentando mover a issue #${issueNumber} para a coluna "${columnName}" no projeto "${projectName}".`);
+
               const projects = await github.rest.projects.listForRepo({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 state: "open"
               });
+
+              console.log(`Projetos encontrados: ${JSON.stringify(projects.data.map(p => p.name))}`);
 
               const project = projects.data.find(p => p.name === projectName);
 
@@ -120,9 +124,13 @@ jobs:
                 return;
               }
 
+              console.log(`Projeto "${projectName}" encontrado com ID: ${project.id}`);
+
               const columns = await github.rest.projects.listColumns({
                 project_id: project.id
               });
+
+              console.log(`Colunas encontradas: ${JSON.stringify(columns.data.map(c => c.name))}`);
 
               const column = columns.data.find(c => c.name === columnName);
 
@@ -131,13 +139,15 @@ jobs:
                 return;
               }
 
+              console.log(`Coluna "${columnName}" encontrada com ID: ${column.id}`);
+
               await github.rest.projects.createCard({
                 column_id: column.id,
                 content_id: issueNumber,
                 content_type: "Issue"
               });
 
-              console.log(`Issue #${issueNumber} moved to column "${columnName}" in project "${projectName}".`);
+              console.log(`Issue #${issueNumber} movida para a coluna "${columnName}" no projeto "${projectName}".`);
 
             } catch(e){
               console.log(e);
