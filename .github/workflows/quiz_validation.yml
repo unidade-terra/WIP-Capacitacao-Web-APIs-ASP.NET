@@ -1,4 +1,4 @@
-name: Validar Quiz IoC, DIP e DI (Primeira Alternativa Correta) e Mudar Status para Review no Projeto
+name: Validar Quiz IoC, DIP e DI (Primeira Alternativa Correta)
 
 on:
   push:
@@ -31,21 +31,19 @@ jobs:
             const issue = issues.data.find(i => i.title === issueTitulo);
 
             if (!issue) {
-              console.log(`Issue "${issueTitulo}" não encontrada.`);
-              return;
-            }
-
-            core.setOutput('issueNumber', issue.number);
-            core.setOutput('issueBody', JSON.stringify(issue.body));
-            return issue.body;
-
-      - name: Validar respostas do quiz
-        id: validar_respostas
-        uses: actions/github-script@v6
-        with:
-          script: |
-            try {
-              const issueBody = JSON.parse('${{ steps.obter_issue.outputs.issueBody }}');
+              console.log(`Issue "<span class="math-inline">\{issueTitulo\}" não encontrada\.\`\);
+return;
+\}
+core\.setOutput\('issueNumber', issue\.number\);
+core\.setOutput\('issueBody', JSON\.stringify\(issue\.body\)\);
+return issue\.body;
+\- name\: Validar respostas do quiz
+id\: validar\_respostas
+uses\: actions/github\-script@v6
+with\:
+script\: \|
+try \{
+const issueBody \= JSON\.parse\('</span>{{ steps.obter_issue.outputs.issueBody }}');
               const issueNumber = ${{ steps.obter_issue.outputs.issueNumber }};
 
               if (!issueBody) return;
@@ -61,94 +59,15 @@ jobs:
               const perguntas = issueBody.split("# ");
 
               perguntas.slice(1).forEach(pergunta => {
-                const numeroPergunta = pergunta.split(" - ")[0];
+                const numeroPergunta = pergunta.split(" - ");
                 const opcoes = pergunta.split("- [");
 
                 opcoes.slice(1).forEach(opcao => {
                   if (opcao.startsWith("x")) {
-                    respostasUsuario[numeroPergunta] = opcao.split("] ")[1].trim();
+                    respostasUsuario[numeroPergunta] = opcao.split("] ").trim();
                   }
                 });
               });
 
               let feedback = "## Resultado do Quiz\n\n";
-              let todasCorretas = true;
-
-              function cleanString(str) {
-                return str.replace(/[\u200B-\u200F\uFEFF\u00A0]/g, '').trim();
-              }
-
-              for (const numeroPergunta in respostasCorretas) {
-                const respostaCorreta = cleanString(respostasCorretas[numeroPergunta]);
-                const respostaUsuario = respostasUsuario[numeroPergunta] ? cleanString(respostasUsuario[numeroPergunta]) : "";
-
-                if (respostaUsuario === respostaCorreta) {
-                  feedback += `✅ Pergunta ${numeroPergunta}: Resposta correta!\n`;
-                } else {
-                  feedback += `❌ Pergunta ${numeroPergunta}: Resposta incorreta. Resposta correta: ${respostasCorretas[numeroPergunta]}\n`;
-                  todasCorretas = false;
-                }
-              }
-
-              if (todasCorretas) {
-                feedback += "\nParabéns! Você acertou todas as perguntas do quiz.";
-              } else {
-                feedback += "\nPor favor, revise suas respostas e tente novamente.";
-              }
-
-              await github.rest.issues.createComment({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                issue_number: issueNumber,
-                body: feedback,
-              });
-
-              // Move issue to Review column in project
-              const projectName = "@MateusKSC's board project"; // Nome do seu projeto
-              const columnName = "Review"; // Nome da coluna "Review"
-
-              console.log(`Tentando mover a issue #${issueNumber} para a coluna "${columnName}" no projeto "${projectName}".`);
-
-              const projects = await github.rest.projects.listForRepo({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                state: "open"
-              });
-
-              console.log(`Projetos encontrados: ${JSON.stringify(projects.data.map(p => p.name))}`);
-
-              const project = projects.data.find(p => p.name === projectName);
-
-              if (!project) {
-                console.log(`Projeto "${projectName}" não encontrado.`);
-                return;
-              }
-
-              console.log(`Projeto "${projectName}" encontrado com ID: ${project.id}`);
-
-              const columns = await github.rest.projects.listColumns({
-                project_id: project.id
-              });
-
-              console.log(`Colunas encontradas: ${JSON.stringify(columns.data.map(c => c.name))}`);
-
-              const column = columns.data.find(c => c.name === columnName);
-
-              if (!column) {
-                console.log(`Coluna "${columnName}" não encontrada.`);
-                return;
-              }
-
-              console.log(`Coluna "${columnName}" encontrada com ID: ${column.id}`);
-
-              await github.rest.projects.createCard({
-                column_id: column.id,
-                content_id: issueNumber,
-                content_type: "Issue"
-              });
-
-              console.log(`Issue #${issueNumber} movida para a coluna "${columnName}" no projeto "${projectName}".`);
-
-            } catch(e){
-              console.log(e);
-            }
+              let todasCor
