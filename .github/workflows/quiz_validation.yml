@@ -83,14 +83,11 @@ jobs:
             for (const numeroPergunta in respostasCorretas) {
               const respostaCorreta = cleanString(respostasCorretas[numeroPergunta]);
               const respostaUsuario = respostasUsuario[numeroPergunta] ? cleanString(respostasUsuario[numeroPergunta]) : "";
-              const respostaUsuarioRaw = respostasUsuario[numeroPergunta] ? respostasUsuario[numeroPergunta] : ""; // Resposta sem sanitização
 
               if (numeroPergunta === "4") { // Log apenas para a pergunta 4
                 console.log(`Pergunta ${numeroPergunta}:`);
                 console.log(`  Resposta Correta (Limpa): "${respostaCorreta}"`);
                 console.log(`  Resposta Usuário (Limpa): "${respostaUsuario}"`);
-                console.log(`  Resposta Usuário (Raw): "${respostaUsuarioRaw}"`);
-                console.log(`  Comparação direta: ${respostaCorreta === respostaUsuario}`); // Comparação direta
               }
 
               if (respostaUsuario === respostaCorreta) {
