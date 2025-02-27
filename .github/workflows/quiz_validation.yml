@@ -50,7 +50,7 @@ jobs:
               "1": "Uma disciplina.",
               "2": "Sim.",
               "3": "Um padrão de design que permite injetar dependências, proporcionando baixo acoplamento.",
-              "4": "IoC determina como as dependências devem ser resolvidas em uma aplicação, enquanto DIP refere-se ao processo de delegar o controle de criação de objetos a um mecanismo externo."
+              "4": "*IoC* determina como as dependências devem ser resolvidas em uma aplicação, enquanto *DIP* refere-se ao processo de delegar o controle de criação de objetos a um mecanismo externo."
             };
 
             const respostasUsuario = {};
