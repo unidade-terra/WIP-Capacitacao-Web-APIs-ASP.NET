@@ -31,19 +31,21 @@ jobs:
             const issue = issues.data.find(i => i.title === issueTitulo);
 
             if (!issue) {
-              console.log(`Issue "<span class="math-inline">\{issueTitulo\}" não encontrada\.\`\);
-return;
-\}
-core\.setOutput\('issueNumber', issue\.number\);
-core\.setOutput\('issueBody', JSON\.stringify\(issue\.body\)\);
-return issue\.body;
-\- name\: Validar respostas do quiz
-id\: validar\_respostas
-uses\: actions/github\-script@v6
-with\:
-script\: \|
-try \{
-const issueBody \= JSON\.parse\('</span>{{ steps.obter_issue.outputs.issueBody }}');
+              console.log(`Issue "${issueTitulo}" não encontrada.`);
+              return;
+            }
+
+            core.setOutput('issueNumber', issue.number);
+            core.setOutput('issueBody', JSON.stringify(issue.body));
+            return issue.body;
+
+      - name: Validar respostas do quiz
+        id: validar_respostas
+        uses: actions/github-script@v6
+        with:
+          script: |
+            try {
+              const issueBody = JSON.parse("${{ steps.obter_issue.outputs.issueBody }}");
               const issueNumber = ${{ steps.obter_issue.outputs.issueNumber }};
 
               if (!issueBody) return;
@@ -70,4 +72,34 @@ const issueBody \= JSON\.parse\('</span>{{ steps.obter_issue.outputs.issueBody }
               });
 
               let feedback = "## Resultado do Quiz\n\n";
-              let todasCor
+              let todasCorretas = true;
+
+              function cleanString(str) {
+                return str.replace(/[\u200B-\u200F\uFEFF\u00A0]/g, '').trim();
+              }
+
+              for (const numeroPergunta in respostasCorretas) {
+                const respostaCorreta = cleanString(respostasCorretas[numeroPergunta]);
+                const respostaUsuario = respostasUsuario[numeroPergunta] ? cleanString(respostasUsuario[numeroPergunta]) : "";
+
+                if (respostaUsuario === respostaCorreta) {
+                  feedback += `✅ Pergunta ${numeroPergunta}: Resposta correta!\n`;
+                } else {
+                  feedback += `❌ Pergunta ${numeroPergunta}: Resposta incorreta. Resposta correta: ${respostasCorretas[numeroPergunta]}\n`;
+                  todasCorretas = false;
+                }
+              }
+
+              if (todasCorretas) {
+                feedback += "\nParabéns! Você acertou todas as perguntas do quiz.";
+              } else {
+                feedback += "\nPor favor, revise suas respostas e tente novamente.";
+              }
+
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issueNumber,
+                body: feedback,
+              });
+            } catch
