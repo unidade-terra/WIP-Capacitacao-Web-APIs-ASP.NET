@@ -37,6 +37,7 @@ jobs:
             }
 
             core.setOutput('issueNumber', issue.number);
+            core.setOutput('issueBody', JSON.stringify(issue.body));
             return issue.body;
 
       - name: Validar respostas do quiz
@@ -44,7 +45,7 @@ jobs:
         uses: actions/github-script@v6
         with:
           script: |
-            const issueBody = ${{ steps.obter_issue.outputs.result }};
+            const issueBody = JSON.parse('${{ steps.obter_issue.outputs.issueBody }}');
             const issueNumber = ${{ steps.obter_issue.outputs.issueNumber }};
 
             if (!issueBody) return;
