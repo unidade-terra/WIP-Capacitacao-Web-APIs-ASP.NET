@@ -63,12 +63,12 @@ jobs:
             const perguntas = issueBody.split("# ");
 
             perguntas.slice(1).forEach(pergunta => {
-              const numeroPergunta = pergunta.split(" - ")[0];
+              const numeroPergunta = pergunta.split(" - ");
               const opcoes = pergunta.split("- [");
 
               opcoes.slice(1).forEach(opcao => {
                 if (opcao.startsWith("x")) {
-                  respostasUsuario[numeroPergunta] = opcao.split("] ")[1].trim();
+                  respostasUsuario[numeroPergunta] = opcao.split("] ").trim();
                 }
               });
             });
@@ -90,26 +90,4 @@ jobs:
                 console.log(`  Resposta Correta (Sanitizada): "${respostaCorreta}"`);
                 console.log(`  Resposta Usuário (Sanitizada): "${respostaUsuario}"`);
                 console.log(`  Resposta Usuário (Raw): "${respostaUsuarioRaw}"`);
-                console.log(`  Comparação direta: ${respostasCorretas[numeroPergunta].replace(/>/g, '&gt;') === respostaUsuarioRaw}`); // Comparação direta
-              }
-
-              if (respostaUsuario === respostaCorreta) {
-                feedback += `✅ Pergunta ${numeroPergunta}: Resposta correta!\n`;
-              } else {
-                feedback += `❌ Pergunta ${numeroPergunta}: Resposta incorreta. Resposta correta: ${respostasCorretas[numeroPergunta]}\n`;
-                todasCorretas = false;
-              }
-            }
-
-            if (todasCorretas) {
-              feedback += "\nParabéns! Você acertou todas as perguntas do quiz.";
-            } else {
-              feedback += "\nPor favor, revise suas respostas e tente novamente.";
-            }
-
-            await github.rest.issues.createComment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: ${{ steps.obter_issue.outputs.issueNumber }},
-              body: feedback,
-            });
+                console.log(`
