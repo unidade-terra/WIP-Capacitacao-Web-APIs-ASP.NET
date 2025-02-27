@@ -8,8 +8,7 @@ on:
 permissions:
   issues: write
   contents: read
-  projects: read # Permissão necessária para ler projetos
-  projects: write # Permissão necessária para escrever projetos
+  projects: write # Permissão necessária para ler e escrever projetos
 
 jobs:
   validar_quiz:
@@ -61,12 +60,12 @@ jobs:
             const perguntas = issueBody.split("# ");
 
             perguntas.slice(1).forEach(pergunta => {
-              const numeroPergunta = pergunta.split(" - ");
+              const numeroPergunta = pergunta.split(" - ")[0];
               const opcoes = pergunta.split("- [");
 
               opcoes.slice(1).forEach(opcao => {
                 if (opcao.startsWith("x")) {
-                  respostasUsuario[numeroPergunta] = opcao.split("] ").trim();
+                  respostasUsuario[numeroPergunta] = opcao.split("] ")[1].trim();
                 }
               });
             });
