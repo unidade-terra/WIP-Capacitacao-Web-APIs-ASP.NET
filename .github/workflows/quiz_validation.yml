@@ -8,7 +8,7 @@ on:
 permissions:
   issues: write
   contents: read
-  repository_projects: write # Permissão correta para modificar projetos
+  projects: write # Permissão correta para modificar projetos
 
 jobs:
   validar_quiz:
