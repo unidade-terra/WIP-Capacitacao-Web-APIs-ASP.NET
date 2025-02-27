@@ -1,4 +1,4 @@
-name: Validar Quiz IoC, DIP e DI (Primeira Alternativa Correta)
+name: Validar Quiz IoC, DIP e DI (Primeira Alternativa Correta) e Mudar Status para Review no Projeto
 
 on:
   push:
@@ -8,6 +8,7 @@ on:
 permissions:
   issues: write
   contents: read
+  projects: write # Permissão necessária para modificar projetos
 
 jobs:
   validar_quiz:
@@ -36,19 +37,15 @@ jobs:
             }
 
             core.setOutput('issueNumber', issue.number);
-            core.setOutput('issueBody', issue.body); // Armazena o conteúdo bruto da issue
             return issue.body;
 
-      - name: Validar respostas do quiz (com logs)
+      - name: Validar respostas do quiz
         id: validar_respostas
         uses: actions/github-script@v6
         with:
           script: |
             const issueBody = ${{ steps.obter_issue.outputs.result }};
-            const rawIssueBody = ${{ steps.obter_issue.outputs.issueBody }}; // Obtém o conteúdo bruto da issue
-
-            console.log("Conteúdo bruto da issue:");
-            console.log(rawIssueBody);
+            const issueNumber = ${{ steps.obter_issue.outputs.issueNumber }};
 
             if (!issueBody) return;
 
@@ -56,7 +53,7 @@ jobs:
               "1": "Uma disciplina.",
               "2": "Sim.",
               "3": "Um padrão de design que permite injetar dependências, proporcionando baixo acoplamento.",
-              "4": "IoC determina como as dependências devem ser resolvidas em uma aplicação, enquanto DIP refere-se ao processo de delegar o controle de criação de objetos a um mecanismo externo."
+              "4": "*IoC* determina como as dependências devem ser resolvidas em uma aplicação, enquanto *DIP* refere-se ao processo de delegar o controle de criação de objetos a um mecanismo externo."
             };
 
             const respostasUsuario = {};
@@ -81,14 +78,8 @@ jobs:
             }
 
             for (const numeroPergunta in respostasCorretas) {
-              let respostaCorreta = cleanString(respostasCorretas[numeroPergunta]);
-              let respostaUsuario = respostasUsuario[numeroPergunta] ? cleanString(respostasUsuario[numeroPergunta]) : "";
-
-              if (numeroPergunta === "4") { // Log apenas para a pergunta 4
-                console.log(`Pergunta ${numeroPergunta}:`);
-                console.log(`  Resposta Correta (Limpa): "${respostaCorreta}"`);
-                console.log(`  Resposta Usuário (Limpa): "${respostaUsuario}"`);
-              }
+              const respostaCorreta = cleanString(respostasCorretas[numeroPergunta]);
+              const respostaUsuario = respostasUsuario[numeroPergunta] ? cleanString(respostasUsuario[numeroPergunta]) : "";
 
               if (respostaUsuario === respostaCorreta) {
                 feedback += `✅ Pergunta ${numeroPergunta}: Resposta correta!\n`;
@@ -107,6 +98,42 @@ jobs:
             await github.rest.issues.createComment({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              issue_number: ${{ steps.obter_issue.outputs.issueNumber }},
+              issue_number: issueNumber,
               body: feedback,
             });
+
+            // Move issue to Review column in project
+            const projectName = "@MateusKSC's board project"; // Nome do seu projeto
+            const columnName = "Review"; // Nome da coluna "Review"
+
+            const projects = await github.rest.projects.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: "open"
+            });
+
+            const project = projects.data.find(p => p.name === projectName);
+
+            if (!project) {
+              console.log(`Projeto "${projectName}" não encontrado.`);
+              return;
+            }
+
+            const columns = await github.rest.projects.listColumns({
+              project_id: project.id
+            });
+
+            const column = columns.data.find(c => c.name === columnName);
+
+            if (!column) {
+              console.log(`Coluna "${columnName}" não encontrada.`);
+              return;
+            }
+
+            await github.rest.projects.createCard({
+              column_id: column.id,
+              content_id: issueNumber,
+              content_type: "Issue"
+            });
+
+            console.log(`Issue #${issueNumber} moved to column "${columnName}" in project "${projectName}".`);
