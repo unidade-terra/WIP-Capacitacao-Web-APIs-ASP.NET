@@ -4,7 +4,7 @@ on:
   push:
     paths:
       - '.github/workflows/quiz_validation.yml'
-
+ 
 permissions:
   issues: write
   contents: read
