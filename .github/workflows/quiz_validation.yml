@@ -81,8 +81,8 @@ jobs:
             }
 
             for (const numeroPergunta in respostasCorretas) {
-              const respostaCorreta = cleanString(respostasCorretas[numeroPergunta]);
-              const respostaUsuario = respostasUsuario[numeroPergunta] ? cleanString(respostasUsuario[numeroPergunta]) : "";
+              let respostaCorreta = cleanString(respostasCorretas[numeroPergunta]);
+              let respostaUsuario = respostasUsuario[numeroPergunta] ? cleanString(respostasUsuario[numeroPergunta]) : "";
 
               if (numeroPergunta === "4") { // Log apenas para a pergunta 4
                 console.log(`Pergunta ${numeroPergunta}:`);
