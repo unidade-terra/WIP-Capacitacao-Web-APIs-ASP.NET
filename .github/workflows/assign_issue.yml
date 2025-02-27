@@ -1,0 +1,78 @@
+name: Assign Issue on Review Column Move
+
+on:
+  project_card:
+    types:
+      - moved
+
+jobs:
+  assign_issue:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code (if needed)
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Get Issue Details and Column Name
+        uses: actions/github-script@v6
+        id: issue_details
+        with:
+          script: |
+            const card = context.payload.project_card;
+            const columnId = card.column_id;
+            const contentUrl = card.content_url;
+            const issueUrl = contentUrl.includes('/issues/') ? contentUrl : null;
+            const columnName = await github.rest.projects.getColumn({
+              column_id: columnId,
+            });
+
+            if (issueUrl) {
+              const issueNumber = issueUrl.split('/').pop();
+              const owner = context.repo.owner;
+              const repo = context.repo.repo;
+              const issue = await github.rest.issues.get({
+                owner,
+                repo,
+                issue_number: issueNumber,
+              });
+
+              return {
+                issueNumber: issueNumber,
+                columnName: columnName.data.name,
+                issueUrl: issueUrl,
+                columnId: columnId
+              };
+            } else {
+              return {
+                columnName: columnName.data.name,
+                columnId: columnId,
+                note: card.note
+              };
+            }
+
+      - name: Check if moved to Review Column
+        id: check_column
+        run: |
+          echo "COLUMN_NAME=${{ steps.issue_details.outputs.columnName }}" >> $GITHUB_OUTPUT
+
+      - name: Assign Users on Review Column
+        if: ${{ steps.check_column.outputs.COLUMN_NAME == 'Review' && steps.issue_details.outputs.issueNumber }}
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const issueNumber = ${{ steps.issue_details.outputs.issueNumber }};
+            const assignees = ['MateusKSC'];
+
+            console.log(`Assigning user ${assignees} to issue #${issueNumber}.`);
+
+            await github.rest.issues.addAssignees({
+              owner,
+              repo,
+              issue_number: issueNumber,
+              assignees: assignees
+            });
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
