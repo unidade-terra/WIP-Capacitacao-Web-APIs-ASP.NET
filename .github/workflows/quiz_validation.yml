@@ -36,6 +36,7 @@ jobs:
             }
 
             core.setOutput('issueNumber', issue.number);
+            core.setOutput('issueBody', issue.body); // Armazena o conteúdo bruto da issue
             return issue.body;
 
       - name: Validar respostas do quiz (com logs)
@@ -44,6 +45,11 @@ jobs:
         with:
           script: |
             const issueBody = ${{ steps.obter_issue.outputs.result }};
+            const rawIssueBody = ${{ steps.obter_issue.outputs.issueBody }}; // Obtém o conteúdo bruto da issue
+
+            console.log("Conteúdo bruto da issue:");
+            console.log(rawIssueBody);
+
             if (!issueBody) return;
 
             const respostasCorretas = {
@@ -77,11 +83,14 @@ jobs:
             for (const numeroPergunta in respostasCorretas) {
               const respostaCorreta = sanitizeString(respostasCorretas[numeroPergunta]);
               const respostaUsuario = respostasUsuario[numeroPergunta] ? sanitizeString(respostasUsuario[numeroPergunta]) : "";
+              const respostaUsuarioRaw = respostasUsuario[numeroPergunta] ? respostasUsuario[numeroPergunta] : ""; // Resposta sem sanitização
 
               if (numeroPergunta === "4") { // Log apenas para a pergunta 4
                 console.log(`Pergunta ${numeroPergunta}:`);
                 console.log(`  Resposta Correta (Sanitizada): "${respostaCorreta}"`);
                 console.log(`  Resposta Usuário (Sanitizada): "${respostaUsuario}"`);
+                console.log(`  Resposta Usuário (Raw): "${respostaUsuarioRaw}"`);
+                console.log(`  Comparação direta: ${respostasCorretas[numeroPergunta] === respostaUsuarioRaw}`); // Comparação direta
               }
 
               if (respostaUsuario === respostaCorreta) {
