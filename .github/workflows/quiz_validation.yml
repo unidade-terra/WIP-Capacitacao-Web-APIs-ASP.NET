@@ -90,7 +90,7 @@ jobs:
                 console.log(`  Resposta Correta (Sanitizada): "${respostaCorreta}"`);
                 console.log(`  Resposta Usuário (Sanitizada): "${respostaUsuario}"`);
                 console.log(`  Resposta Usuário (Raw): "${respostaUsuarioRaw}"`);
-                console.log(`  Comparação direta: ${respostasCorretas[numeroPergunta] === respostaUsuarioRaw}`); // Comparação direta
+                console.log(`  Comparação direta: ${respostasCorretas[numeroPergunta].replace(/>/g, '&gt;') === respostaUsuarioRaw}`); // Comparação direta
               }
 
               if (respostaUsuario === respostaCorreta) {
