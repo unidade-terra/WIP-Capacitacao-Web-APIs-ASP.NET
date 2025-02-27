@@ -1,15 +1,15 @@
-name: Test Project Card Move
+    name: Test Project Card Move
 
-   on:
-     project_card:
-       types:
-         - moved
+    on:
+      project_card:
+        types:
+          - moved
 
-   jobs:
-     test_trigger:
-       runs-on: ubuntu-latest
-       steps:
-         - name: Echo Test
-           run: echo "Project card moved!"
-         - name: Debugging Event Payload
-           run: echo "${{ toJSON(github.event) }}"
+    jobs: # jobs: is at the same level as on:
+      test_trigger:
+        runs-on: ubuntu-latest
+        steps:
+          - name: Echo Test
+            run: echo "Project card moved!"
+          - name: Debugging Event Payload
+            run: echo "${{ toJSON(github.event) }}"
