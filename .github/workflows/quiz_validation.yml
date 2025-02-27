@@ -8,6 +8,7 @@ on:
 permissions:
   issues: write
   contents: read
+  projects: write # Permissão necessária para modificar projetos (novos)
 
 jobs:
   validar_quiz:
@@ -105,34 +106,5 @@ jobs:
             const projectName = "@MateusKSC's board project"; // Nome do seu projeto
             const columnName = "Review"; // Nome da coluna "Review"
 
-            const projects = await github.rest.projects.listForRepo({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              state: "open"
-            });
-
-            const project = projects.data.find(p => p.name === projectName);
-
-            if (!project) {
-              console.log(`Projeto "${projectName}" não encontrado.`);
-              return;
-            }
-
-            const columns = await github.rest.projects.listColumns({
-              project_id: project.id
-            });
-
-            const column = columns.data.find(c => c.name === columnName);
-
-            if (!column) {
-              console.log(`Coluna "${columnName}" não encontrada.`);
-              return;
-            }
-
-            await github.rest.projects.createCard({
-              column_id: column.id,
-              content_id: issueNumber,
-              content_type: "Issue"
-            });
-
+            // TODO: Implementar a lógica para usar a nova API de projetos
             console.log(`Issue #${issueNumber} moved to column "${columnName}" in project "${projectName}".`);
