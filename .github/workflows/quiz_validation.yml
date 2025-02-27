@@ -1,13 +1,13 @@
 name: Validar Quiz IoC, DIP e DI (Primeira Alternativa Correta)
- 
+
 on:
   push:
     paths:
       - '.github/workflows/quiz_validation.yml'
 
 permissions:
-  issues: write # Permissão de escrita para criar comentários
-  contents: read # Permissão de leitura para o checkout do código
+  issues: write
+  contents: read
 
 jobs:
   validar_quiz:
@@ -50,7 +50,7 @@ jobs:
               "1": "Uma disciplina.",
               "2": "Sim.",
               "3": "Um padrão de design que permite injetar dependências, proporcionando baixo acoplamento.",
-              "4": "IoC estabelece que as abstrações não devem depender de implementações concretas, enquanto DIP define que os módulos de alto nível não devem depender dos módulos de baixo nível."
+              "4": "IoC determina como as dependências devem ser resolvidas em uma aplicação, enquanto DIP refere-se ao processo de delegar o controle de criação de objetos a um mecanismo externo."
             };
 
             const respostasUsuario = {};
@@ -71,10 +71,13 @@ jobs:
             let todasCorretas = true;
 
             for (const numeroPergunta in respostasCorretas) {
-              if (respostasUsuario[numeroPergunta] === respostasCorretas[numeroPergunta]) {
+              const respostaCorreta = respostasCorretas[numeroPergunta].trim();
+              const respostaUsuario = respostasUsuario[numeroPergunta] ? respostasUsuario[numeroPergunta].trim() : "";
+
+              if (respostaUsuario === respostaCorreta) {
                 feedback += `✅ Pergunta ${numeroPergunta}: Resposta correta!\n`;
               } else {
-                feedback += `❌ Pergunta ${numeroPergunta}: Resposta incorreta. Resposta correta: ${respostasCorretas[numeroPergunta]}\n`;
+                feedback += `❌ Pergunta ${numeroPergunta}: Resposta incorreta. Resposta correta: ${respostaCorreta}\n`;
                 todasCorretas = false;
               }
             }
