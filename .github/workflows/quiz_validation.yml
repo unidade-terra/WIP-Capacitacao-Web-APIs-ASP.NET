@@ -70,14 +70,18 @@ jobs:
             let feedback = "## Resultado do Quiz\n\n";
             let todasCorretas = true;
 
+            function sanitizeString(str) {
+              return str.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[\u200B-\u200F\uFEFF]/g, '').trim();
+            }
+
             for (const numeroPergunta in respostasCorretas) {
-              const respostaCorreta = respostasCorretas[numeroPergunta].trim();
-              const respostaUsuario = respostasUsuario[numeroPergunta] ? respostasUsuario[numeroPergunta].trim() : "";
+              const respostaCorreta = sanitizeString(respostasCorretas[numeroPergunta]);
+              const respostaUsuario = respostasUsuario[numeroPergunta] ? sanitizeString(respostasUsuario[numeroPergunta]) : "";
 
               if (respostaUsuario === respostaCorreta) {
                 feedback += `✅ Pergunta ${numeroPergunta}: Resposta correta!\n`;
               } else {
-                feedback += `❌ Pergunta ${numeroPergunta}: Resposta incorreta. Resposta correta: ${respostaCorreta}\n`;
+                feedback += `❌ Pergunta ${numeroPergunta}: Resposta incorreta. Resposta correta: ${respostasCorretas[numeroPergunta]}\n`;
                 todasCorretas = false;
               }
             }
