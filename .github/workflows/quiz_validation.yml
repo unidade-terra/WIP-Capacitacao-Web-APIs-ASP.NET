@@ -129,6 +129,3 @@ jobs:
               console.log(`Coluna "${columnName}" não encontrada.`);
               return;
             }
-
-            await github.rest.projects.createCard({
-              column_id: column.
