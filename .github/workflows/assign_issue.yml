@@ -1,18 +1,14 @@
-   name: Test Project Card Move
+name: Test Project Item Move
 
-   on:
-     project_card:
-       types:
-         - moved
-     push:
-       branches:
-         - main # Or your default branch
+on:
+  projects_v2_item:
+    types: [moved]
 
-   jobs:
-     test_trigger:
-       runs-on: ubuntu-latest
-       steps:
-         - name: Echo Test
-           run: echo "Project card moved or push happened!"
-         - name: Debugging Event Payload
-           run: echo "${{ toJSON(github.event) }}"
+jobs:
+  test_trigger:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Echo Test
+        run: echo "Project item moved!"
+      - name: Debugging Event Payload
+        run: echo "${{ toJSON(github.event) }}"
