@@ -1,14 +1,63 @@
-name: Test Project Item Move
+name: Assign MateusKSC on Issue Move to Review
 
 on:
-  projects_v2_item:
-    types: [moved]
+  repository_dispatch:
+    types: [project_card_moved]
 
 jobs:
-  test_trigger:
+  assign_mateusksc:
     runs-on: ubuntu-latest
     steps:
-      - name: Echo Test
-        run: echo "Project item moved!"
-      - name: Debugging Event Payload
-        run: echo "${{ toJSON(github.event) }}"
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Parse Webhook Payload
+        id: parse_payload
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const payload = context.payload.client_payload;
+            core.setOutput('issue_url', payload.project_card.content_url);
+            core.setOutput('column_name', payload.project_card.column_name);
+
+      - name: Check if Moved to "Review" Column
+        if: ${{ steps.parse_payload.outputs.column_name == 'Review' }}
+        run: echo "Issue moved to Review column."
+
+      - name: Assign MateusKSC to Issue
+        if: ${{ steps.parse_payload.outputs.column_name == 'Review' }}
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const github = context.github;
+            const issueUrl = ${{ steps.parse_payload.outputs.issue_url }};
+            const parts = issueUrl.split('/');
+            const owner = parts[3];
+            const repo = parts[4];
+            const issue_number = parts[6];
+
+            await github.rest.issues.update({
+              owner: owner,
+              repo: repo,
+              issue_number: issue_number,
+              assignees: ['MateusKSC']
+            });
+
+      - name: Add Comment to Issue
+        if: ${{ steps.parse_payload.outputs.column_name == 'Review' }}
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const github = context.github;
+            const issueUrl = ${{ steps.parse_payload.outputs.issue_url }};
+            const parts = issueUrl.split('/');
+            const owner = parts[3];
+            const repo = parts[4];
+            const issue_number = parts[6];
+
+            await github.rest.issues.createComment({
+              owner: owner,
+              repo: repo,
+              issue_number: issue_number,
+              body: "Issue moved to the Review column and assigned to MateusKSC."
+            });
