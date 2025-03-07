@@ -1,0 +1,36 @@
+name: Project Automation
+
+on:
+  repository_dispatch:
+    types:
+      - project_card
+      - project_column
+      - projects_v2_item
+      - projects_v2
+      - projects_v2_status_update
+
+jobs:
+  automate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      - name: Add assignee if moved to Review column
+        if: ${{ github.event.client_payload.event_type == 'project_card' && github.event.client_payload.project_card.column.name == 'Review' }}
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const github = context.github;
+            const context = github.context;
+            const payload = context.payload.client_payload;
+            const issueUrl = payload.project_card.content_url;
+
+            if (issueUrl) {
+              const issueNumber = issueUrl.split('/').pop();
+              await github.rest.issues.addAssignees({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: parseInt(issueNumber),
+                assignees: ['MateusKSC']
+              });
+            }
