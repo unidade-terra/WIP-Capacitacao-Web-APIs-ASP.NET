@@ -1,45 +1,15 @@
-name: Project Automation
+name: Generic Dispatch Handler
 
 on:
   repository_dispatch:
-    types:
-      - projects_v2_item
 
 jobs:
-  automate:
+  handle_dispatch:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
-      - name: Log Payload
-        run: echo "${{ toJSON(github.event.client_payload) }}" #Add this to log the payload
-      - name: Add assignee if moved to Review column
-        if: ${{ github.event.client_payload.changes.field_value.to.name == 'Review' }}
-        uses: actions/github-script@v6
-        with:
-          script: |
-            const github = context.github;
-            const context = github.context;
-            const payload = context.payload.client_payload;
-            const contentNodeId = payload.projects_v2_item.content_node_id;
-
-            if (contentNodeId) {
-              try {
-                const issueUrl = `https://api.github.com/graphql`
-                const query = `query{ node(id: "${contentNodeId}") { ... on Issue { number repository { owner { login } name } } } }`
-                const response = await github.graphql(query);
-                const issueNumber = response.node.number;
-                const owner = response.node.repository.owner.login;
-                const repo = response.node.repository.name;
-                await github.rest.issues.addAssignees({
-                  owner: owner,
-                  repo: repo,
-                  issue_number: issueNumber,
-                  assignees: ['MateusKSC']
-                });
-              } catch (error) {
-                console.error("Error during issue assignment:", error);
-              }
-            } else {
-              console.log("contentNodeId is missing.");
-            }
+      - name: Log the event type and payload
+        run: |
+          echo "Event Type: ${{ github.event.client_payload.event_type }}"
+          echo "Payload: ${{ toJSON(github.event.client_payload) }}"
