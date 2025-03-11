@@ -29,5 +29,5 @@ jobs:
           echo "Content Node ID: ${{ github.event.inputs.content_node_id }}"
           echo "Project ID: ${{ github.event.inputs.project_id }}"
           echo "Other Project Data:"
-          echo "</span>"
-          echo "${{ github.event.inputs.other_project_data }}" | jq '.'
+          export OTHER_PROJECT_DATA="${{ github.event.inputs.other_project_data }}"
+          echo "$OTHER_PROJECT_DATA" | jq '.'
