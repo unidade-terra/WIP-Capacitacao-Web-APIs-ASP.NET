@@ -70,7 +70,7 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
             const org = 'unidade-terra';
-            const teamSlug = 'board-team'; # Use the team slug, not the display name.
+            const teamSlug = 'board-team';
             const response = await github.rest.teams.listMembers({
               org,
               team_slug: teamSlug,
@@ -86,7 +86,7 @@ jobs:
             const issueNumber = ${{ steps.get_issue_number.outputs.result }};
             const owner = context.repo.owner;
             const repo = context.repo.repo;
-            const assignees = ${{ steps.get_team_members.outputs.result }};
+            const assignees = JSON.parse('${{ steps.get_team_members.outputs.result }}');
 
             console.log(`Extracted Issue Number: ${issueNumber}`);
             console.log(`Assigning Board Team Members: ${assignees}`);
