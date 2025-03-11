@@ -71,7 +71,7 @@ jobs:
           script: |
             const org = 'unidade-terra';
             const teamSlug = 'board-team';
-            const response = await github.rest.teams.listMembers({
+            const response = await github.rest.teams.listMembersForLegacy({
               org,
               team_slug: teamSlug,
             });
