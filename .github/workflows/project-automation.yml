@@ -1,4 +1,4 @@
-name: Assign User on Project Item Move
+name: Assign Board Team to Issue
 
 on:
   workflow_dispatch:
@@ -17,17 +17,29 @@ on:
         type: string
 
 jobs:
-  assign_user:
+  assign_team:
     runs-on: ubuntu-latest
     permissions:
       issues: write
-      contents: read # Required for github script
+      contents: read
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
       - name: Install jq
         run: sudo apt-get update && sudo apt-get install -y jq
+      - name: Check Column
+        id: check_column
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const otherProjectData = JSON.parse('${{ github.event.inputs.other_project_data }}');
+            if (otherProjectData.changes && otherProjectData.changes.field_value && otherProjectData.changes.field_value.to && otherProjectData.changes.field_value.to.name === 'Review') {
+              return true;
+            } else {
+              return false;
+            }
       - name: Get Issue Number
+        if: steps.check_column.outputs.result == 'true'
         uses: actions/github-script@v6
         id: get_issue_number
         with:
@@ -50,7 +62,23 @@ jobs:
             } else {
               throw new Error('Issue number not found');
             }
-      - name: Assign MateusKSC
+      - name: Get Board Team Members
+        if: steps.check_column.outputs.result == 'true'
+        uses: actions/github-script@v6
+        id: get_team_members
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const org = 'unidade-terra';
+            const teamSlug = 'board-team'; # Use the team slug, not the display name.
+            const response = await github.rest.teams.listMembers({
+              org,
+              team_slug: teamSlug,
+            });
+            const members = response.data.map((member) => member.login);
+            return members;
+      - name: Assign Board Team Members
+        if: steps.check_column.outputs.result == 'true'
         uses: actions/github-script@v6
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
@@ -58,19 +86,20 @@ jobs:
             const issueNumber = ${{ steps.get_issue_number.outputs.result }};
             const owner = context.repo.owner;
             const repo = context.repo.repo;
-            const assignee = 'MateusKSC';
+            const assignees = ${{ steps.get_team_members.outputs.result }};
 
             console.log(`Extracted Issue Number: ${issueNumber}`);
+            console.log(`Assigning Board Team Members: ${assignees}`);
 
             try {
               await github.rest.issues.addAssignees({
                 owner,
                 repo,
                 issue_number: issueNumber,
-                assignees: [assignee]
+                assignees: assignees,
               });
-              console.log(`Assigned ${assignee} to issue ${issueNumber}`);
+              console.log(`Assigned Board Team members to issue ${issueNumber}`);
             } catch (error) {
-              console.error(`Failed to assign ${assignee} to issue ${issueNumber}:`, error);
+              console.error(`Failed to assign Board Team members to issue ${issueNumber}:`, error);
               console.error('Full Error:', JSON.stringify(error));
             }
