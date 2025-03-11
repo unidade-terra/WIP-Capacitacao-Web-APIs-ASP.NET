@@ -33,7 +33,7 @@ jobs:
             console.log('Parsed otherProjectData:', JSON.stringify(otherProjectData, null, 2));
 
             if (otherProjectData.projects_v2_item && otherProjectData.projects_v2_item.content_node_id) {
-              const issueNumber = otherProjectData.projects_v2_item.content_node_id.replace(/-/g, '').split("_").pop(); // Corrected extraction
+              const issueNumber = otherProjectData.projects_v2_item.content_node_id.split("I_kwDON39_fs")[1]; // Corrected extraction
               const owner = context.repo.owner;
               const repo = context.repo.repo;
               const assignee = 'MateusKSC';
