@@ -1,4 +1,4 @@
-name: Assign Board Team to Issue
+name: Assign Board Team to Issue (Full Permissions - NOT RECOMMENDED)
 
 on:
   workflow_dispatch:
@@ -20,8 +20,16 @@ jobs:
   assign_team:
     runs-on: ubuntu-latest
     permissions:
+      contents: write
       issues: write
-      contents: read
+      pull-requests: write
+      packages: write
+      deployments: write
+      actions: write
+      security-events: write
+      statuses: write
+      checks: write
+      metadata: write
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
@@ -86,6 +94,7 @@ jobs:
             `;
             const variables = { org, teamSlug };
             const result = await github.graphql(query, variables);
+            console.log('GraphQL Response:', JSON.stringify(result, null, 2)); // Add this line for debugging
             if (result.organization && result.organization.team && result.organization.team.members && result.organization.team.members.nodes) {
               const members = result.organization.team.members.nodes.map((node) => node.login);
               return members;
