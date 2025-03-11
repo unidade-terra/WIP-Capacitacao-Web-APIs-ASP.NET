@@ -1,10 +1,10 @@
-name: Generic Dispatch Handler
+name: Assign User on Project Item Move
 
 on:
   workflow_dispatch:
     inputs:
       content_node_id:
-        description: 'The content node ID'
+        description: 'The content node ID (Issue ID)'
         required: true
         type: string
       project_id:
@@ -17,17 +17,31 @@ on:
         type: string
 
 jobs:
-  handle_dispatch:
+  assign_user:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
       - name: Install jq
         run: sudo apt-get update && sudo apt-get install -y jq
-      - name: Log the event type and payload
-        run: |
-          echo "Content Node ID: ${{ github.event.inputs.content_node_id }}"
-          echo "Project ID: ${{ github.event.inputs.project_id }}"
-          echo "Other Project Data:"
-          export OTHER_PROJECT_DATA="${{ github.event.inputs.other_project_data }}"
-          echo "$OTHER_PROJECT_DATA" | jq '.'
+      - name: Assign MateusKSC
+        uses: actions/github-script@v6
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const issueId = '${{ github.event.inputs.content_node_id }}';
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const assignee = 'MateusKSC';
+
+            try {
+              await github.rest.issues.addAssignees({
+                owner,
+                repo,
+                issue_number: issueId.split('_').pop(), // Extract issue number from node ID
+                assignees: [assignee]
+              });
+              console.log(`Assigned ${assignee} to issue ${issueId}`);
+            } catch (error) {
+              console.error(`Failed to assign ${assignee} to issue ${issueId}:`, error);
+            }
