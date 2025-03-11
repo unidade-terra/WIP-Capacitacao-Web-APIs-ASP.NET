@@ -22,8 +22,12 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
+      - name: Install jq
+        run: sudo apt-get update && sudo apt-get install -y jq
       - name: Log the event type and payload
         run: |
           echo "Content Node ID: ${{ github.event.inputs.content_node_id }}"
           echo "Project ID: ${{ github.event.inputs.project_id }}"
-          echo "Other Project Data: ${{ github.event.inputs.other_project_data }}"
+          echo "Other Project Data:"
+          echo "</span>"
+          echo "${{ github.event.inputs.other_project_data }}" | jq '.'
