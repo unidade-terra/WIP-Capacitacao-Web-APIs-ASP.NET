@@ -33,15 +33,18 @@ jobs:
             const owner = context.repo.owner;
             const repo = context.repo.repo;
             const assignee = 'MateusKSC';
+            const issueNumber = issueId.split('_').pop(); // Extract issue number
+            console.log(`Extracted Issue Number: ${issueNumber}`); // Log it
 
             try {
               await github.rest.issues.addAssignees({
                 owner,
                 repo,
-                issue_number: issueId.split('_').pop(), // Extract issue number from node ID
+                issue_number: issueNumber,
                 assignees: [assignee]
               });
               console.log(`Assigned ${assignee} to issue ${issueId}`);
             } catch (error) {
               console.error(`Failed to assign ${assignee} to issue ${issueId}:`, error);
+              console.error('Full Error:', JSON.stringify(error)); // Add this line
             }
