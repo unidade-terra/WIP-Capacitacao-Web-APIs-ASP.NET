@@ -62,7 +62,7 @@ jobs:
             } else {
               throw new Error('Issue number not found');
             }
-      - name: Get Board Team Members
+      - name: Get Board Team Members (GraphQL)
         if: steps.check_column.outputs.result == 'true'
         uses: actions/github-script@v6
         id: get_team_members
@@ -71,15 +71,27 @@ jobs:
           script: |
             const org = 'unidade-terra';
             const teamSlug = 'board-team';
-            const response = await github.rest.teams.listMembers({
-              org,
-              team_slug: teamSlug,
-              headers: {
-                'X-GitHub-Api-Version': '2022-11-28'
+            const query = `
+              query GetTeamMembers($org: String!, $teamSlug: String!) {
+                organization(login: $org) {
+                  team(slug: $teamSlug) {
+                    members(first: 100) {
+                      nodes {
+                        login
+                      }
+                    }
+                  }
+                }
               }
-            });
-            const members = response.data.map((member) => member.login);
-            return members;
+            `;
+            const variables = { org, teamSlug };
+            const result = await github.graphql(query, variables);
+            if (result.organization && result.organization.team && result.organization.team.members && result.organization.team.members.nodes) {
+              const members = result.organization.team.members.nodes.map((node) => node.login);
+              return members;
+            } else {
+              throw new Error('Team members not found');
+            }
       - name: Assign Board Team Members
         if: steps.check_column.outputs.result == 'true'
         uses: actions/github-script@v6
