@@ -27,8 +27,7 @@ jobs:
       - name: Log the event type and payload
         run: |
           echo "Content Node ID: ${{ github.event.inputs.content_node_id }}"
-          echo "Project ID: <span class="math-inline">\{\{ github\.event\.inputs\.project\_id \}\}"
-echo "Other Project Data\:"
-echo "</span\>"
-export OTHER\_PROJECT\_DATA\="</span>{{ github.event.inputs.other_project_data }}"
-          echo "$OTHER_PROJECT_DATA" | jq '.'
+          echo "Project ID: ${{ github.event.inputs.project_id }}"
+          echo "Other Project Data:"
+          echo "</span>"
+          echo "${{ github.event.inputs.other_project_data }}" | jq '.'
