@@ -19,39 +19,58 @@ on:
 jobs:
   assign_user:
     runs-on: ubuntu-latest
+    permissions:
+      issues: write
+      contents: read # Required for github script
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
       - name: Install jq
         run: sudo apt-get update && sudo apt-get install -y jq
+      - name: Get Issue Number
+        uses: actions/github-script@v6
+        id: get_issue_number
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const contentNodeId = '${{ github.event.inputs.content_node_id }}';
+            const query = `
+              query GetIssueNumber($contentNodeId: ID!) {
+                node(id: $contentNodeId) {
+                  ... on Issue {
+                    number
+                  }
+                }
+              }
+            `;
+            const variables = { contentNodeId };
+            const result = await github.graphql(query, variables);
+            if (result.node && result.node.number) {
+              return result.node.number;
+            } else {
+              throw new Error('Issue number not found');
+            }
       - name: Assign MateusKSC
         uses: actions/github-script@v6
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
-            const otherProjectData = JSON.parse('${{ github.event.inputs.other_project_data }}');
-            console.log('Parsed otherProjectData:', JSON.stringify(otherProjectData, null, 2));
+            const issueNumber = ${{ steps.get_issue_number.outputs.result }};
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const assignee = 'MateusKSC';
 
-            if (otherProjectData.projects_v2_item && otherProjectData.projects_v2_item.content_node_id) {
-              const issueNumber = otherProjectData.projects_v2_item.content_node_id.split("I_kwDON39_fs")[1]; // Corrected extraction
-              const owner = context.repo.owner;
-              const repo = context.repo.repo;
-              const assignee = 'MateusKSC';
+            console.log(`Extracted Issue Number: ${issueNumber}`);
 
-              console.log(`Extracted Issue Number: ${issueNumber}`);
-
-              try {
-                await github.rest.issues.addAssignees({
-                  owner,
-                  repo,
-                  issue_number: issueNumber,
-                  assignees: [assignee]
-                });
-                console.log(`Assigned ${assignee} to issue ${issueNumber}`);
-              } catch (error) {
-                console.error(`Failed to assign ${assignee} to issue ${issueNumber}:`, error);
-                console.error('Full Error:', JSON.stringify(error));
-              }
-            } else {
-              console.error('Issue ID field not found in otherProjectData');
+            try {
+              await github.rest.issues.addAssignees({
+                owner,
+                repo,
+                issue_number: issueNumber,
+                assignees: [assignee]
+              });
+              console.log(`Assigned ${assignee} to issue ${issueNumber}`);
+            } catch (error) {
+              console.error(`Failed to assign ${assignee} to issue ${issueNumber}:`, error);
+              console.error('Full Error:', JSON.stringify(error));
             }
