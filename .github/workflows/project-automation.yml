@@ -29,22 +29,29 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
-            const issueId = '${{ github.event.inputs.content_node_id }}';
-            const owner = context.repo.owner;
-            const repo = context.repo.repo;
-            const assignee = 'MateusKSC';
-            const issueNumber = issueId.split('_').pop(); // Extract issue number
-            console.log(`Extracted Issue Number: ${issueNumber}`); // Log it
+            const otherProjectData = JSON.parse('${{ github.event.inputs.other_project_data }}');
+            console.log('Parsed otherProjectData:', JSON.stringify(otherProjectData, null, 2));
 
-            try {
-              await github.rest.issues.addAssignees({
-                owner,
-                repo,
-                issue_number: issueNumber,
-                assignees: [assignee]
-              });
-              console.log(`Assigned ${assignee} to issue ${issueId}`);
-            } catch (error) {
-              console.error(`Failed to assign ${assignee} to issue ${issueId}:`, error);
-              console.error('Full Error:', JSON.stringify(error)); // Add this line
+            if (otherProjectData.projects_v2_item && otherProjectData.projects_v2_item.content_node_id) {
+              const issueNumber = otherProjectData.projects_v2_item.content_node_id.split("_").pop();
+              const owner = context.repo.owner;
+              const repo = context.repo.repo;
+              const assignee = 'MateusKSC';
+
+              console.log(`Extracted Issue Number: ${issueNumber}`);
+
+              try {
+                await github.rest.issues.addAssignees({
+                  owner,
+                  repo,
+                  issue_number: issueNumber,
+                  assignees: [assignee]
+                });
+                console.log(`Assigned ${assignee} to issue ${issueNumber}`);
+              } catch (error) {
+                console.error(`Failed to assign ${assignee} to issue ${issueNumber}:`, error);
+                console.error('Full Error:', JSON.stringify(error));
+              }
+            } else {
+              console.error('Issue ID field not found in otherProjectData');
             }
