@@ -62,37 +62,14 @@ jobs:
             } else {
               throw new Error('Issue number not found');
             }
-      - name: Get Board Team Members (GraphQL)
+      - name: Get Board Team Members
         if: steps.check_column.outputs.result == 'true'
-        uses: actions/github-script@v6
         id: get_team_members
+        uses: paritytech/list-team-members@main
         with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          script: |
-            const org = 'unidade-terra';
-            const teamSlug = 'boardteam';
-            const query = `
-              query GetTeamMembers($org: String!, $teamSlug: String!) {
-                organization(login: $org) {
-                  team(slug: $teamSlug) {
-                    members(first: 100) {
-                      nodes {
-                        login
-                      }
-                    }
-                  }
-                }
-              }
-            `;
-            const variables = { org, teamSlug };
-            const result = await github.graphql(query, variables);
-            console.log('GraphQL Response:', JSON.stringify(result, null, 2));
-            if (result.organization && result.organization.team && result.organization.team.members && result.organization.team.members.nodes) {
-              const members = result.organization.team.members.nodes.map((node) => node.login);
-              return members;
-            } else {
-              throw new Error('Team members not found');
-            }
+          ACCESS_TOKEN: ${{ secrets.READ_ORG_PAT }}
+          team: boardteam
+          organization: unidade-terra
       - name: Assign Board Team Members
         if: steps.check_column.outputs.result == 'true'
         uses: actions/github-script@v6
@@ -102,17 +79,7 @@ jobs:
             const issueNumber = ${{ steps.get_issue_number.outputs.result }};
             const owner = context.repo.owner;
             const repo = context.repo.repo;
-            const teamMembersOutput = '${{ steps.get_team_members.outputs.result }}';
-            let assignees = [];
-
-            if (teamMembersOutput) {
-              try {
-                assignees = JSON.parse(teamMembersOutput);
-              } catch (error) {
-                console.error('Error parsing team members:', error);
-                assignees = []; // Set to empty array to prevent issues.
-              }
-            }
+            const assignees = '${{ steps.get_team_members.outputs.usernames }}'.split(',');
 
             console.log(`Extracted Issue Number: ${issueNumber}`);
             console.log(`Assigning Board Team Members: ${assignees}`);
