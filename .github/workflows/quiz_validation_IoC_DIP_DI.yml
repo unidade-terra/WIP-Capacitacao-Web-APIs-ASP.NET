@@ -23,27 +23,23 @@ jobs:
       - name: Checkout do código
         uses: actions/checkout@v2
 
-      - name: Obter conteúdo da issue
+      - name: Obter issue pelo content_node_id
         id: obter_issue
         uses: actions/github-script@v6
         with:
           script: |
-            const issueTitulo = "Desafio quiz: IoC, DIP e DI";
-            const issues = await github.rest.issues.listForRepo({
+            const contentNodeId = "${{ github.event.inputs.content_node_id }}";
+            const issueId = contentNodeId.split('_').pop();
+            const issueNumber = Buffer.from(issueId, 'base64').toString('ascii').match(/\d+/)[0];
+
+            const issue = await github.rest.issues.get({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              state: 'all',
+              issue_number: parseInt(issueNumber)
             });
 
-            const issue = issues.data.find(i => i.title === issueTitulo);
-
-            if (!issue) {
-              console.log(`Issue "${issueTitulo}" não encontrada.`);
-              return;
-            }
-
-            core.setOutput('issueNumber', issue.number);
-            return issue.body;
+            core.setOutput('issueNumber', issue.data.number);
+            return issue.data.body;
 
       - name: Validar respostas do quiz
         id: validar_respostas
