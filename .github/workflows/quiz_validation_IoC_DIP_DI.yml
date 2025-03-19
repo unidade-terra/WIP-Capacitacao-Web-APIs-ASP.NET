@@ -1,10 +1,17 @@
 name: Validar Quiz IoC, DIP e DI (Primeira Alternativa Correta)
-  
+
 on:
-  push:
-    paths:
-      - '.github/workflows/quiz_validation.yml'
- 
+  workflow_dispatch:
+    inputs:
+      content_node_id:
+        description: 'ID do nó de conteúdo'
+        required: true
+        type: string
+      project_id:
+        description: 'ID do projeto'
+        required: true
+        type: string
+
 permissions:
   issues: write
   contents: read
