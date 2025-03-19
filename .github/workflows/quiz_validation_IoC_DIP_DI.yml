@@ -23,23 +23,28 @@ jobs:
       - name: Checkout do código
         uses: actions/checkout@v2
 
-      - name: Obter issue pelo content_node_id
+      - name: Obter conteúdo da issue pelo content_node_id
         id: obter_issue
         uses: actions/github-script@v6
         with:
           script: |
             const contentNodeId = "${{ github.event.inputs.content_node_id }}";
-            const issueId = contentNodeId.split('_').pop();
-            const issueNumber = Buffer.from(issueId, 'base64').toString('ascii').match(/\d+/)[0];
+            const issueId = atob(contentNodeId.split('_').pop());
+            const issueNumber = issueId.split('/').pop();
 
-            const issue = await github.rest.issues.get({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: parseInt(issueNumber)
-            });
+            try {
+              const issue = await github.rest.issues.get({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: parseInt(issueNumber)
+              });
 
-            core.setOutput('issueNumber', issue.data.number);
-            return issue.data.body;
+              core.setOutput('issueNumber', issue.data.number);
+              return issue.data.body;
+            } catch (error) {
+              console.error(`Erro ao obter issue com content_node_id: ${contentNodeId}`, error);
+              return;
+            }
 
       - name: Validar respostas do quiz
         id: validar_respostas
