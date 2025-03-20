@@ -4,10 +4,17 @@ on:
   workflow_dispatch:
     inputs:
       content_node_id:
-        description: 'The content node ID'
+        description: 'The content node ID (Issue ID)'
         required: true
         type: string
-
+      project_id:
+        description: 'The project ID'
+        required: true
+        type: string
+      other_project_data:
+        description: 'The full json payload of the github project event'
+        required: true
+        type: string
 jobs:
   test_node_id:
     runs-on: ubuntu-latest
