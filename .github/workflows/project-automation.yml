@@ -1,98 +1,18 @@
 name: Assign Board Team to Issue
-
 on:
   workflow_dispatch:
     inputs:
       content_node_id:
-        description: 'The content node ID (Issue ID)'
-        required: true
-        type: string
-      project_id:
-        description: 'The project ID'
-        required: true
-        type: string
-      other_project_data:
-        description: 'The full json payload of the github project event'
+        description: 'The content node ID'
         required: true
         type: string
 
 jobs:
-  assign_team:
+  test_node_id:
     runs-on: ubuntu-latest
-    permissions:
-      issues: write
-      contents: read
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-      - name: Install jq
-        run: sudo apt-get update && sudo apt-get install -y jq
-      - name: Check Column
-        id: check_column
-        uses: actions/github-script@v6
-        with:
-          script: |
-            const otherProjectData = JSON.parse('${{ github.event.inputs.other_project_data }}');
-            if (otherProjectData.changes && otherProjectData.changes.field_value && otherProjectData.changes.field_value.to && otherProjectData.changes.field_value.to.name === 'Review') {
-              return true;
-            } else {
-              return false;
-            }
-      - name: Get Issue Number
-        if: steps.check_column.outputs.result == 'true'
-        uses: actions/github-script@v6
-        id: get_issue_number
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          script: |
-            const contentNodeId = '${{ github.event.inputs.content_node_id }}';
-            const query = `
-              query GetIssueNumber($contentNodeId: ID!) {
-                node(id: $contentNodeId) {
-                  ... on Issue {
-                    number
-                  }
-                }
-              }
-            `;
-            const variables = { contentNodeId };
-            const result = await github.graphql(query, variables);
-            if (result.node && result.node.number) {
-              return result.node.number;
-            } else {
-              throw new Error('Issue number not found');
-            }
-      - name: Get Board Team Members
-        if: steps.check_column.outputs.result == 'true'
-        id: get_team_members
-        uses: paritytech/list-team-members@main
-        with:
-          ACCESS_TOKEN: ${{ secrets.READ_ORG_PAT }}
-          team: boardteam
-          organization: unidade-terra
-      - name: Assign Board Team Members
-        if: steps.check_column.outputs.result == 'true'
-        uses: actions/github-script@v6
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          script: |
-            const issueNumber = ${{ steps.get_issue_number.outputs.result }};
-            const owner = context.repo.owner;
-            const repo = context.repo.repo;
-            const assignees = '${{ steps.get_team_members.outputs.usernames }}'.split(',');
-
-            console.log(`Extracted Issue Number: ${issueNumber}`);
-            console.log(`Assigning Board Team Members: ${assignees}`);
-
-            try {
-              await github.rest.issues.addAssignees({
-                owner,
-                repo,
-                issue_number: issueNumber,
-                assignees: assignees,
-              });
-              console.log(`Assigned Board Team members to issue ${issueNumber}`);
-            } catch (error) {
-              console.error(`Failed to assign Board Team members to issue ${issueNumber}:`, error);
-              console.error('Full Error:', JSON.stringify(error));
-            }
+      - name: Log Node ID
+        run: echo "Node ID: ${{ github.event.inputs.content_node_id }}"
+      - name: Fail if Empty
+        if: ${{ !github.event.inputs.content_node_id }}
+        run: exit 1
