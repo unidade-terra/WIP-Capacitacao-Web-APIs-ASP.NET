@@ -129,7 +129,7 @@ jobs:
               feedback += "\nParabéns! Você acertou todas as perguntas do quiz.";
               core.setOutput('todas_corretas', 'true');
             } else {
-              feedback += "\nPor favor, revise suas respostas and tente novamente.";
+              feedback += "\nPor favor, revise suas respostas e tente novamente.";
               core.setOutput('todas_corretas', 'false');
             }
 
@@ -173,4 +173,22 @@ jobs:
                   per_page: 100
                 });
 
-                issueCard = cards.data.find(card => card.content_url === `https://api.github.com
+                issueCard = cards.data.find(card => card.content_url === `https://api.github.com/repos/${context.repo.owner}/${context.repo.repo}/issues/${issueNumber}`);
+
+                if (issueCard) {
+                  break;
+                }
+              }
+
+              if (issueCard) {
+                await github.rest.projects.moveCard({
+                  card_id: issueCard.id,
+                  position: "top",
+                  column_id: doneColumn.id,
+                });
+              } else {
+                core.setFailed("Issue card not found in any column of the project.");
+              }
+            } catch (error) {
+              core.setFailed(`Error moving card: ${error.message}`);
+            }
