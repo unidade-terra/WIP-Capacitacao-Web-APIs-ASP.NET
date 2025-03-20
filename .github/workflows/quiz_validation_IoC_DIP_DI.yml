@@ -4,101 +4,95 @@ on:
   workflow_dispatch:
     inputs:
       content_node_id:
-        description: 'ID do nó de conteúdo'
-        # required: true  <-- Removed
+        description: 'The content node ID (Issue ID)'
+        required: true
         type: string
       project_id:
-        description: 'ID do projeto'
-        # required: true  <-- Removed
+        description: 'The project ID'
+        required: true
+        type: string
+      other_project_data:
+        description: 'The full json payload of the github project event'
+        required: true
         type: string
 
-permissions:
-  issues: write
-  contents: read
-
 jobs:
-  validar_quiz:
+  assign_team:
     runs-on: ubuntu-latest
+    permissions:
+      issues: write
+      contents: read
     steps:
-      - name: Checkout do código
-        uses: actions/checkout@v2
-
-      - name: Obter conteúdo da issue pelo content_node_id
-        id: obter_issue
+      - name: Checkout code
+        uses: actions/checkout@v3
+      - name: Install jq
+        run: sudo apt-get update && sudo apt-get install -y jq
+      - name: Check Column
+        id: check_column
         uses: actions/github-script@v6
         with:
           script: |
-            const contentNodeId = "${{ github.event.inputs.content_node_id }}";
-            const issueId = atob(contentNodeId.split('_').pop());
-            const issueNumber = issueId.split('/').pop();
+            const otherProjectData = JSON.parse('${{ github.event.inputs.other_project_data }}');
+            if (otherProjectData.changes && otherProjectData.changes.field_value && otherProjectData.changes.field_value.to && otherProjectData.changes.field_value.to.name === 'Review') {
+              return true;
+            } else {
+              return false;
+            }
+      - name: Get Issue Number
+        if: steps.check_column.outputs.result == 'true'
+        uses: actions/github-script@v6
+        id: get_issue_number
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const contentNodeId = '${{ github.event.inputs.content_node_id }}';
+            const query = `
+              query GetIssueNumber($contentNodeId: ID!) {
+                node(id: $contentNodeId) {
+                  ... on Issue {
+                    number
+                  }
+                }
+              }
+            `;
+            const variables = { contentNodeId };
+            const result = await github.graphql(query, variables);
+            if (result.node && result.node.number) {
+              return result.node.number;
+            } else {
+              throw new Error('Issue number not found');
+            }
+      - name: Get Board Team Members
+        if: steps.check_column.outputs.result == 'true'
+        id: get_team_members
+        uses: paritytech/list-team-members@main
+        with:
+          ACCESS_TOKEN: ${{ secrets.READ_ORG_PAT }}
+          team: boardteam
+          organization: unidade-terra
+      - name: Assign Board Team Members
+        if: steps.check_column.outputs.result == 'true'
+        uses: actions/github-script@v6
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const issueNumber = ${{ steps.get_issue_number.outputs.result }};
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const assignees = '${{ steps.get_team_members.outputs.usernames }}'.split(',');
+
+            console.log(`Extracted Issue Number: ${issueNumber}`);
+            console.log(`Assigning Board Team Members: ${assignees}`);
 
             try {
-              const issue = await github.rest.issues.get({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                issue_number: parseInt(issueNumber)
+              await github.rest.issues.addAssignees({
+                owner,
+                repo,
+                issue_number: issueNumber,
+                assignees: assignees,
               });
-
-              core.setOutput('issueNumber', issue.data.number);
-              return issue.data.body;
+              console.log(`Assigned Board Team members to issue ${issueNumber}`);
             } catch (error) {
-              console.error(`Erro ao obter issue com content_node_id: ${contentNodeId}`, error);
-              return;
+              console.error(`Failed to assign Board Team members to issue ${issueNumber}:`, error);
+              console.error('Full Error:', JSON.stringify(error));
             }
-
-      - name: Validar respostas do quiz
-        id: validar_respostas
-        uses: actions/github-script@v6
-        with:
-          script: |
-            const issueBody = ${{ steps.obter_issue.outputs.result }};
-            if (!issueBody) return;
-
-            const respostasCorretas = {
-              "1": "Uma disciplina.",
-              "2": "Sim.",
-              "3": "Um padrão de design que permite injetar dependências, proporcionando baixo acoplamento.",
-              "4": "*IoC* determina como as dependências devem ser resolvidas em uma aplicação, enquanto *DIP* refere-se ao processo de delegar o controle de criação de objetos a um mecanismo externo."
-            };
-
-            const respostasUsuario = {};
-            const perguntas = issueBody.split("# ");
-
-            perguntas.slice(1).forEach(pergunta => {
-              const numeroPergunta = pergunta.split(" - ")[0];
-              const opcoes = pergunta.split("- [");
-
-              opcoes.slice(1).forEach(opcao => {
-                if (opcao.startsWith("x")) {
-                  respostasUsuario[numeroPergunta] = opcao.split("] ")[1].trim();
-                }
-              });
-            });
-
-            let feedback = "## Resultado do Quiz\n\n";
-            let todasCorretas = true;
-
-            for (const numeroPergunta in respostasCorretas) {
-              const respostaCorreta = respostasCorretas[numeroPergunta].trim();
-              const respostaUsuario = respostasUsuario[numeroPergunta] ? respostasUsuario[numeroPergunta].trim() : "";
-
-              if (respostaUsuario === respostaCorreta) {
-                feedback += `✅ Pergunta ${numeroPergunta}: Resposta correta!\n`;
-              } else {
-                feedback += `❌ Pergunta ${numeroPergunta}: Resposta incorreta. Resposta correta: ${respostaCorreta}\n`;
-                todasCorretas = false;
-              }
-            }
-
-            if (todasCorretas) {
-              feedback += "\nParabéns! Você acertou todas as perguntas do quiz.";
-            } else {
-              feedback += "\nPor favor, revise suas respostas e tente novamente.";
-            }
-
-            await github.rest.issues.createComment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: ${{ steps.obter_issue.outputs.issueNumber }},
-              body: feedback,
-            });
