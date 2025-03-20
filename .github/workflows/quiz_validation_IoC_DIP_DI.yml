@@ -19,9 +19,7 @@ on:
     paths:
       - '.github/workflows/quiz_validation_IoC_DIP_DI.yml'
 
-permissions: # Correct placement: at the top level
-  issues: write
-  projects: write
+permissions: write-all
 
 jobs:
   validar_quiz:
