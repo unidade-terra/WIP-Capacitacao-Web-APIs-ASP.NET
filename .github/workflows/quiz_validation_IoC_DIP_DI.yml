@@ -1,4 +1,5 @@
-name: Validar Quiz IoC, DIP e DI (Primeira Alternativa Correta)
+name: Test Node ID
+
 on:
   workflow_dispatch:
     inputs:
@@ -12,7 +13,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Log Node ID
-        run: echo "Node ID: ${{ github.event.inputs.content_node_id }}"
+        run: |
+          echo "Node ID: ${{ github.event.inputs.content_node_id }}"
       - name: Fail if Empty
-        if: ${{ !github.event.inputs.content_node_id }}
+        if: ${{ github.event.inputs.content_node_id == '' }}
         run: exit 1
