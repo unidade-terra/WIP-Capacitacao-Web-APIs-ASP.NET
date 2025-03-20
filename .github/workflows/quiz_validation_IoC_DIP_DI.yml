@@ -18,7 +18,10 @@ on:
   push:
     paths:
       - '.github/workflows/quiz_validation.yml'
-
+      
+permissions:
+  issues: write # Grants write permissions for issues to the whole workflow
+  
 jobs:
   validar_quiz:
     runs-on: ubuntu-latest
