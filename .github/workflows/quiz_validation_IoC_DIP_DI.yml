@@ -18,9 +18,9 @@ on:
   push:
     paths:
       - '.github/workflows/quiz_validation.yml'
-      
+
 permissions: write-all
-  
+
 jobs:
   validar_quiz:
     runs-on: ubuntu-latest
@@ -90,13 +90,16 @@ jobs:
           script: |
             const issueBody = ${{ steps.obter_issue.outputs.result }};
             const issueNumber = ${{ steps.get_issue_number.outputs.result }};
+            const contentNodeId = "${{ github.event.inputs.content_node_id }}";
+            const projectId = "${{ github.event.inputs.project_id }}";
+            const otherProjectData = JSON.parse('${{ github.event.inputs.other_project_data }}');
             if (!issueBody || !issueNumber) return;
 
             const respostasCorretas = {
               "1": "Uma disciplina.",
               "2": "Sim.",
               "3": "Um padrão de design que permite injetar dependências, proporcionando baixo acoplamento.",
-              "4": "IoC estabelece que as abstrações não devem depender de implementações concretas, enquanto DIP define que os módulos de alto nível não devem depender dos módulos de baixo nível."
+              "4": "*IoC* estabelece que as abstrações não devem depender de implementações concretas, enquanto *DIP* define que os módulos de alto nível não devem depender dos módulos de baixo nível."
             };
 
             const respostasUsuario = {};
@@ -140,4 +143,27 @@ jobs:
               });
             } catch(error){
               core.setFailed(`Failed to create issue comment: ${error.message}`);
+            }
+
+            // Move card if all answers are correct
+            if (todasCorretas) {
+              try {
+                const projectColumns = await github.rest.projects.listColumns({
+                  project_id: projectId,
+                });
+
+                if (projectColumns && projectColumns.data && projectColumns.data.length > 2) {
+                  const doneColumnId = projectColumns.data[2].id; // Assuming "Done" is the third column
+
+                  await github.rest.projects.moveCard({
+                    card_id: otherProjectData.projects_v2_item.id,
+                    position: "bottom",
+                    column_id: doneColumnId,
+                  });
+                } else {
+                  console.log("Done column not found or project has less than 3 columns.");
+                }
+              } catch (moveError) {
+                core.setFailed(`Failed to move card: ${moveError.message}`);
+              }
             }
