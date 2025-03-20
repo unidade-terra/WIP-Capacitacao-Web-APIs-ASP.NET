@@ -97,7 +97,7 @@ jobs:
               "1": "Uma disciplina.",
               "2": "Sim.",
               "3": "Um padrão de design que permite injetar dependências, proporcionando baixo acoplamento.",
-              "4": "IoC estabelece que as abstrações não devem depender de implementações concretas, enquanto DIP define que os módulos de alto nível não devem depender dos módulos de baixo nível."
+              "4": "*IoC* estabelece que as abstrações não devem depender de implementações concretas, enquanto *DIP* define que os módulos de alto nível não devem depender dos módulos de baixo nível."
             };
 
             const respostasUsuario = {};
