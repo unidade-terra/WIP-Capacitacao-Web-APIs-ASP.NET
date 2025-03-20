@@ -15,10 +15,6 @@ on:
         description: 'The full json payload of the github project event'
         required: true
         type: string
-      done_column_id:
-        description: 'The ID of the "Done" column'
-        required: true
-        type: string
   push:
     paths:
       - '.github/workflows/quiz_validation_IoC_DIP_DI.yml'
@@ -157,7 +153,6 @@ jobs:
           script: |
             const projectId = "${{ github.event.inputs.project_id }}";
             const issueNumber = ${{ steps.get_issue_number.outputs.result }};
-            const doneColumnId = "${{ github.event.inputs.done_column_id }}";
 
             try{
               const columns = await github.rest.projects.listColumns({
@@ -165,12 +160,12 @@ jobs:
                 per_page: 100
               });
 
-              const doneColumn = columns.data.find(col => col.id === parseInt(doneColumnId));
-
-              if (!doneColumn) {
-                core.setFailed(`Done column with ID "${doneColumnId}" not found.`);
+              if (columns.data.length < 3) {
+                core.setFailed("Project does not have at least three columns.");
                 return;
               }
+
+              const doneColumn = columns.data[2]; // Assumes the third column is "Done"
 
               let issueCard = null;
 
