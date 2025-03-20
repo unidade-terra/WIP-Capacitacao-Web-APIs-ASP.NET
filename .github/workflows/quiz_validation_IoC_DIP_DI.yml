@@ -19,59 +19,6 @@ on:
         description: 'The ID of the "Done" column'
         required: true
         type: string
-
-# ... rest of your workflow ...
-
-      - name: Move Card to Done (If All Correct)
-        if: steps.validar_respostas.outputs.todas_corretas == 'true'
-        uses: actions/github-script@v6
-        with:
-          script: |
-            const projectId = "${{ github.event.inputs.project_id }}";
-            const issueNumber = ${{ steps.get_issue_number.outputs.result }};
-            const doneColumnId = "${{ github.event.inputs.done_column_id }}";
-
-            try{
-              // 1. Get the project columns
-              const columns = await github.rest.projects.listColumns({
-                project_id: projectId,
-                per_page: 100
-              });
-
-              // 2. Find the "Done" column ID
-              const doneColumn = columns.data.find(col => col.id === parseInt(doneColumnId));
-
-              if (!doneColumn) {
-                core.setFailed(`Done column with ID "${doneColumnId}" not found.`);
-                return;
-              }
-
-              let issueCard = null;
-
-              // 3. Search for the card in all columns
-              for (const column of columns.data) {
-                const cards = await github.rest.projects.listCards({
-                  column_id: column.id,
-                  per_page: 100
-                });
-
-                issueCard = cards.data.find(card => card.content_url === `https://api.github.com/repos/${context.repo.owner}/${context.repo.repo}/issues/${issueNumber}`);
-
-                if (issueCard) {
-                  break; // Card found, exit the loop
-                }
-              }
-
-              if (issueCard) {
-                // 4. Move the card to the "Done" column
-                await github.rest.projects.moveCard({
-                  card_id: issueCard.id,
-                  position: "top",
-                  column_id: doneColumn.id,
-                });
-              } else {
-                core.setFailed("Issue card not found in any column of the project.");
-              }
-            } catch (error) {
-              core.setFailed(`Error moving card: ${error.message}`);
-            }
+  push:
+    paths:
+      - '.github/workflows/quiz_validation_IoC_DIP_DI.yml'
