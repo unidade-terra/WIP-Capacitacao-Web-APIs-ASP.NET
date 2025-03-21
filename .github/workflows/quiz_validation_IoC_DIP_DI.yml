@@ -1,4 +1,3 @@
-
 name: Validar Quiz IoC, DIP e DI (Primeira Alternativa Correta)
 
 on:
@@ -77,8 +76,8 @@ jobs:
                 return;
               }
 
-              const doneColumn = projectItemsResult.node.fields.nodes.find(field => field.__typename === "ProjectV2ItemFieldSingleSelect" && field.name === "Done");
-              const reviewColumn = projectItemsResult.node.fields.nodes.find(field => field.__typename === "ProjectV2ItemFieldSingleSelect" && field.name === "Review");
+              const doneColumn = projectItemsResult.node.fields.nodes.find(field => field.name === "Done");
+              const reviewColumn = projectItemsResult.node.fields.nodes.find(field => field.name === "Review");
 
               if (!doneColumn || !reviewColumn) {
                 core.setFailed("Colunas 'Done' ou 'Review' não encontradas no projeto.");
@@ -95,11 +94,11 @@ jobs:
 
               const moveIssueMutation = `
                 mutation {
-                  updateProjectV2ItemPosition(input: {
+                  updateProjectV2ItemFieldValue(input: {
                     projectId: "${projectId}",
                     itemId: "${item.id}",
-                    afterId: null,
-                    fieldValueId: "${doneOption.id}"
+                    fieldId: "${doneColumn.id}",
+                    valueId: "${doneOption.id}"
                   }) {
                     projectV2Item {
                       id
