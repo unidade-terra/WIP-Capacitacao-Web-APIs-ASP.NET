@@ -33,8 +33,9 @@ jobs:
         id: check_column
         uses: actions/github-script@v6
         with:
-          github-token: ${{ secrets.ORG_PAT }} # Use ORG_PAT here
+          github-token: ${{ secrets.ORG_PAT }}
           script: |
+            console.log("ORG_PAT Secret (Check Column):", "${{ secrets.ORG_PAT }}"); # Log the secret
             const otherProjectData = JSON.parse('${{ github.event.inputs.other_project_data }}');
             if (otherProjectData.changes && otherProjectData.changes.field_value && otherProjectData.changes.field_value.to && otherProjectData.changes.field_value.to.name === 'Review') {
               return true;
@@ -46,8 +47,9 @@ jobs:
         uses: actions/github-script@v6
         id: get_issue_number
         with:
-          github-token: ${{ secrets.ORG_PAT }} # Use ORG_PAT here
+          github-token: ${{ secrets.ORG_PAT }}
           script: |
+            console.log("ORG_PAT Secret (Get Issue Number):", "${{ secrets.ORG_PAT }}"); # Log the secret
             const contentNodeId = '${{ github.event.inputs.content_node_id }}';
             const query = `
               query GetIssueNumber($contentNodeId: ID!) {
@@ -70,15 +72,16 @@ jobs:
         id: get_team_members
         uses: paritytech/list-team-members@main
         with:
-          ACCESS_TOKEN: ${{ secrets.ORG_PAT }} # Use ORG_PAT here
+          ACCESS_TOKEN: ${{ secrets.ORG_PAT }}
           team: boardteam
           organization: unidade-terra
       - name: Assign Board Team Members
         if: steps.check_column.outputs.result == 'true'
         uses: actions/github-script@v6
         with:
-          github-token: ${{ secrets.ORG_PAT }} # Use ORG_PAT here
+          github-token: ${{ secrets.ORG_PAT }}
           script: |
+            console.log("ORG_PAT Secret (Assign Team Members):", "${{ secrets.ORG_PAT }}"); # Log the secret
             const issueNumber = ${{ steps.get_issue_number.outputs.result }};
             const owner = context.repo.owner;
             const repo = context.repo.repo;
