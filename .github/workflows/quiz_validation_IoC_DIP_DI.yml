@@ -19,101 +19,28 @@ on:
 permissions: write-all
 
 jobs:
-  mover_issue:
+  move_issue:
     runs-on: ubuntu-latest
     steps:
-      - name: Mover Issue para Done
+      - name: Add "Done" label to issue 6
         uses: actions/github-script@v6
         with:
           github-token: ${{ secrets.ORG_PAT }}
           script: |
-            console.log("ORG_PAT Secret (Mover Issue):", "${{ secrets.ORG_PAT }}");
-            console.log("Project Id:", "${{ github.event.inputs.project_id }}");
-
-            const projectId = "${{ github.event.inputs.project_id }}";
             const issueNumber = 6;
+            await github.rest.issues.addLabels({
+              issue_number: issueNumber,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              labels: ['Done']
+            });
+            console.log(`Added "Done" label to issue #${issueNumber}`);
 
-            console.log(`Issue Number: ${issueNumber}`);
-
-            const projectItemsQuery = `
-              query {
-                node(id: "${projectId}") {
-                  ... on ProjectV2 {
-                    items(first: 100) {
-                      nodes {
-                        id
-                        content {
-                          ... on Issue {
-                            number
-                          }
-                        }
-                      }
-                    }
-                    fields(first: 100) {
-                      nodes {
-                        id
-                        name
-                        fieldDefinition {
-                          ... on ProjectV2FieldSingleSelect {
-                            options {
-                              id
-                              name
-                            }
-                          }
-                        }
-                      }
-                    }
-                  }
-                }
-              }
-            `;
-
-            try {
-              const projectItemsResult = await github.graphql(projectItemsQuery);
-              const projectItems = projectItemsResult.node.items.nodes;
-              const item = projectItems.find(i => i.content?.number === issueNumber);
-
-              if (!item) {
-                core.setFailed(`Issue ${issueNumber} não encontrada no projeto.`);
-                return;
-              }
-
-              // Locate the "Done" and "Review" columns
-              const doneColumn = projectItemsResult.node.fields.nodes.find(field => field.name === "Done");
-              const reviewColumn = projectItemsResult.node.fields.nodes.find(field => field.name === "Review");
-
-              if (!doneColumn || !reviewColumn) {
-                core.setFailed("Colunas 'Done' ou 'Review' não encontradas no projeto.");
-                return;
-              }
-
-              // Handle the specific "singleSelect" fields from the columns
-              const doneOption = doneColumn.fieldDefinition?.options.find(option => option.name === "Done");
-              const reviewOption = reviewColumn.fieldDefinition?.options.find(option => option.name === "Review");
-
-              if (!doneOption || !reviewOption) {
-                core.setFailed("Opções 'Done' ou 'Review' não encontradas nas colunas.");
-                return;
-              }
-
-              const moveIssueMutation = `
-                mutation {
-                  updateProjectV2ItemFieldValue(input: {
-                    projectId: "${projectId}",
-                    itemId: "${item.id}",
-                    fieldId: "${doneColumn.id}",
-                    valueId: "${doneOption.id}"
-                  }) {
-                    projectV2Item {
-                      id
-                    }
-                  }
-                }
-              `;
-
-              const moveResult = await github.graphql(moveIssueMutation);
-              console.log(`[DEBUG] Move Issue Result: ${JSON.stringify(moveResult)}`);
-            } catch (error) {
-              core.setFailed(`Error moving issue: ${error.message}`);
-              console.error(`Error: ${error}`);
-            }
+      - name: Move Issue 6 to Done Column
+        uses: m7kvqbe1/github-action-move-issues@v1.0.0
+        with:
+          github-token: ${{ secrets.ORG_PAT }}
+          project-url: "https://github.com/orgs/YOUR_ORG/projects/${{ github.event.inputs.project_id }}"
+          target-labels: "Done"
+          target-column: "Done"
+          ignored-columns: "Review"
