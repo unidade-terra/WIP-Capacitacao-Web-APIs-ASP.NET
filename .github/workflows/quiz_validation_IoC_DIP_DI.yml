@@ -81,6 +81,7 @@ jobs:
                 return;
               }
 
+              // Locate the "Done" and "Review" columns
               const doneColumn = projectItemsResult.node.fields.nodes.find(field => field.name === "Done");
               const reviewColumn = projectItemsResult.node.fields.nodes.find(field => field.name === "Review");
 
@@ -89,6 +90,7 @@ jobs:
                 return;
               }
 
+              // Handle the specific "singleSelect" fields from the columns
               const doneOption = doneColumn.fieldDefinition?.singleSelect?.options.find(option => option.name === "Done");
               const reviewOption = reviewColumn.fieldDefinition?.singleSelect?.options.find(option => option.name === "Review");
 
