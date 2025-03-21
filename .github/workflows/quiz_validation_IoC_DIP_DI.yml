@@ -25,6 +25,7 @@ jobs:
       - name: Mover Issue para Done
         uses: actions/github-script@v6
         with:
+          github-token: ${{ secrets.ORG_PAT }} # Use the secret
           script: |
             const projectId = "${{ github.event.inputs.project_id }}";
             const issueNumber = 6;
