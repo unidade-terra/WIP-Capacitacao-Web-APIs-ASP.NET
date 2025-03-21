@@ -28,11 +28,12 @@ jobs:
           github-token: ${{ secrets.ORG_PAT }}
           script: |
             console.log("ORG_PAT Secret (Mover Issue):", "${{ secrets.ORG_PAT }}");
-            console.log("Issue Number:", parseInt("${{ github.event.inputs.issue_number }}"));
             console.log("Project Id:", "${{ github.event.inputs.project_id }}");
 
             const projectId = "${{ github.event.inputs.project_id }}";
-            const issueNumber = parseInt("${{ github.event.inputs.issue_number }}");
+            const issueNumber = 6; // Fixed issue number
+
+            console.log("Moving issue number: 6");
 
             const projectItemsQuery = `
               query {
@@ -80,7 +81,7 @@ jobs:
 
               const moveResult = await github.graphql(moveIssueMutation);
               console.log(`[DEBUG] Move Issue Result: ${JSON.stringify(moveResult)}`);
-            } catch (error) { // Verify that the try catch block is correct.
+            } catch (error) {
               core.setFailed(`Error moving issue: ${error.message}`);
               console.error(`Error: ${error}`);
             }
