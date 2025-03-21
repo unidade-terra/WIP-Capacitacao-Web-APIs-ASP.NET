@@ -26,8 +26,7 @@ jobs:
         id: generate-token
         uses: actions/github-script@v6
         env:
-          APP_ID: YOUR_APP_ID
-          INSTALLATION_ID: YOUR_INSTALLATION_ID
+          APP_ID: 1185682 # App ID
         with:
           script: |
             const jwt = require('jsonwebtoken');
@@ -35,7 +34,6 @@ jobs:
             const fetch = require('node-fetch');
 
             const appId = process.env.APP_ID;
-            const installationId = process.env.INSTALLATION_ID;
             const privateKey = process.env.APP_PRIVATE_KEY; # Renamed secret
 
             const now = Math.floor(Date.now() / 1000);
@@ -47,11 +45,50 @@ jobs:
 
             const token = jwt.sign(payload, privateKey, { algorithm: 'RS256' });
 
+            // Get Installation ID
+            const installationQuery = `
+              query {
+                viewer {
+                  installations(first: 100) {
+                    nodes {
+                      id
+                      appId
+                      account {
+                        __typename
+                        ... on Organization {
+                          login
+                        }
+                        ... on User {
+                          login
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            `;
+
+            const installationResponse = await github.graphql(installationQuery, {
+              headers: {
+                authorization: `Bearer ${token}`,
+              },
+            });
+
+            const installations = installationResponse.viewer.installations.nodes;
+            const appInstallation = installations.find(installation => installation.appId === parseInt(appId));
+
+            if (!appInstallation) {
+              core.setFailed(`GitHub App installation not found.`);
+              return;
+            }
+
+            const installationId = appInstallation.id;
+
             const response = await fetch(`https://api.github.com/app/installations/${installationId}/access_tokens`, {
               method: 'POST',
               headers: {
                 Authorization: `Bearer ${token}`,
-                Accept: 'application/vnd.github.v3+json',
+                Accept: 'application/vnd.github.v3+json`,
               },
             });
 
