@@ -93,4 +93,28 @@ jobs:
               const reviewOption = reviewColumn.fieldDefinition?.singleSelect?.options.find(option => option.name === "Review");
 
               if (!doneOption || !reviewOption) {
-                core.setFailed("Opções 'Done' ou 'Review' não 
+                core.setFailed("Opções 'Done' ou 'Review' não encontradas nas colunas.");
+                return;
+              }
+
+              const moveIssueMutation = `
+                mutation {
+                  updateProjectV2ItemFieldValue(input: {
+                    projectId: "${projectId}",
+                    itemId: "${item.id}",
+                    fieldId: "${doneColumn.id}",
+                    valueId: "${doneOption.id}"
+                  }) {
+                    projectV2Item {
+                      id
+                    }
+                  }
+                }
+              `;
+
+              const moveResult = await github.graphql(moveIssueMutation);
+              console.log(`[DEBUG] Move Issue Result: ${JSON.stringify(moveResult)}`);
+            } catch (error) {
+              core.setFailed(`Error moving issue: ${error.message}`);
+              console.error(`Error: ${error}`);
+            }
