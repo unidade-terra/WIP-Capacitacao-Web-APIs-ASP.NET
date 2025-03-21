@@ -11,10 +11,6 @@ on:
         description: 'The project ID'
         required: true
         type: string
-      installation_token: # Expect the token as input
-        description: 'The installation token'
-        required: true
-        type: string
       other_project_data:
         description: 'The full json payload of the github project event'
         required: false
