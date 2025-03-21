@@ -27,13 +27,12 @@ jobs:
         uses: actions/github-script@v6
         with:
           script: |
-            const issueName = "${{ github.event.inputs.issue_title }}";
+            const issueName = "Desafio quiz: IoC, DIP e DI"; // Nome da issue fixado
             const issues = await github.rest.issues.listForRepo({
               owner: context.repo.owner,
               repo: context.repo.repo,
               state: "all",
             });
-
             const issue = issues.data.find(issue => issue.title === issueName);
 
             if (!issue) {
@@ -53,7 +52,6 @@ jobs:
           script: |
             const issueNumber = ${{ steps.buscar_issue.outputs.result }};
             if (!issueNumber) return;
-
             try {
               const issueBody = await github.rest.issues.get({
                 owner: context.repo.owner,
@@ -81,7 +79,6 @@ jobs:
             const issueNumber = ${{ steps.buscar_issue.outputs.result }};
             const projectId = "${{ github.event.inputs.project_id }}";
             if (!issueBody || !issueNumber) return;
-
             const respostasCorretas = {
               "1": "Uma disciplina.",
               "2": "Sim.",
