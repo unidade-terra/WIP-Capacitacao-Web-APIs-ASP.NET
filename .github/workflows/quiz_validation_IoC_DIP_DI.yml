@@ -87,7 +87,7 @@ jobs:
                 return;
               }
 
-              const doneColumn = projectItemsResult.node.fields.nodes.find(field => field.name === "Done" && field.options);
+              const doneColumn = projectItemsResult.node.fields.nodes.find(field => field.__typename === "ProjectV2ItemFieldSingleSelect" && field.name === "Done");
 
               if (!doneColumn) {
                 core.setFailed("Coluna 'Done' não encontrada no projeto ou não é do tipo 'Single Select'.");
