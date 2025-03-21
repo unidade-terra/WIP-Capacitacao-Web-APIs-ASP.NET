@@ -118,24 +118,31 @@ jobs:
                   project_id: projectId,
                 });
 
-                if (projectColumns && projectColumns.data && projectColumns.data.length > 0) {
+                if (projectColumns && projectColumns.data && projectColumns.data.length > 1) {
+                  const reviewColumn = projectColumns.data[1];
                   const doneColumn = projectColumns.data.find(column => column.name === "Done");
 
-                  if (doneColumn) {
+                  if (reviewColumn && doneColumn) {
+                    const reviewColumnId = reviewColumn.id;
                     const doneColumnId = doneColumn.id;
                     const issueId = (await github.rest.issues.get({owner: context.repo.owner, repo: context.repo.repo, issue_number: issueNumber})).data.id;
 
-                    const cardId = await $`curl -s -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" "https://api.github.com/projects/columns/${doneColumnId}/cards" | jq ".[] | select(.content_id == ${issueId}) | .id"`;
+                    const cardId = await $`curl -s -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" "https://api.github.com/projects/columns/${reviewColumnId}/cards" | jq ".[] | select(.content_id == ${issueId}) | .id"`;
                     if (cardId) {
-                      await $`curl -X POST -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" -H "Accept: application/vnd.github.inertia-preview+json" -d '{"position":"top"}' "https://api.github.com/projects/columns/cards/${cardId}/moves"`;
+                      await $`curl -X POST -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" -H "Accept: application/vnd.github.inertia-preview+json" -d '{"position":"top", "column_id": ${doneColumnId}}' "https://api.github.com/projects/columns/cards/${cardId}/moves"`;
                     } else {
-                      console.log("Card não encontrado na coluna Done.");
+                      console.log("Card não encontrado na coluna Review.");
                     }
                   } else {
-                    console.log("Coluna 'Done' não encontrada.");
+                    console.log("Coluna 'Review' ou 'Done' não encontrada.");
                   }
                 } else {
-                  console.log("Não foram encontradas colunas no projeto.");
+                  console.log("Não foram encontradas colunas suficientes no projeto.");
+                }
+              } catch (error) {
+                core.setFailed(`Failed to move card: ${error.message}`);
+              }
+            }
                 }
               } catch (error) {
                 core.setFailed(`Failed to move card: ${error.message}`);
