@@ -36,7 +36,6 @@ jobs:
             });
             console.log(`[DEBUG] Issues: ${JSON.stringify(issues.data)}`);
             const issue = issues.data.find(issue => issue.title === issueName);
-
             if (!issue) {
               core.setFailed(`Issue com o nome "${issueName}" não encontrado.`);
               return null;
@@ -62,7 +61,6 @@ jobs:
                 repo: context.repo.repo,
                 issue_number: issueNumber,
               }).then(result => result.data.body);
-
               if (!issueBody) {
                 console.log(`Issue number ${issueNumber} body not found.`);
                 return;
@@ -89,7 +87,6 @@ jobs:
               "3": "Um padrão de design que permite injetar dependências, proporcionando baixo acoplamento.",
               "4": "IoC estabelece que as abstrações não devem depender de implementações concretas, enquanto DIP define que os módulos de alto nível não devem depender dos módulos de baixo nível."
             };
-
             const respostasUsuario = {};
             const perguntas = issueBody.split("# ");
 
@@ -155,5 +152,4 @@ jobs:
               } catch (error) {
                 core.setFailed(`Failed to move card: ${error.message}`);
               }
-            }
             }
