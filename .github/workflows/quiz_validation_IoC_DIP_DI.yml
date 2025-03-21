@@ -31,7 +31,7 @@ jobs:
             console.log("Project Id:", "${{ github.event.inputs.project_id }}");
 
             const projectId = "${{ github.event.inputs.project_id }}";
-            const issueNumber = 6; // Fixed issue number
+            const issueNumber = 6;
 
             console.log("Moving issue number: 6");
 
@@ -45,6 +45,29 @@ jobs:
                         content {
                           ... on Issue {
                             number
+                          }
+                        }
+                        fieldValues(first: 100) {
+                          nodes {
+                            ... on ProjectV2ItemFieldSingleSelectValue {
+                              field {
+                                id
+                                name
+                              }
+                              optionId
+                            }
+                          }
+                        }
+                      }
+                    }
+                    fields(first: 100) {
+                      nodes {
+                        id
+                        name
+                        ... on ProjectV2ItemFieldSingleSelect {
+                          options {
+                            id
+                            name
                           }
                         }
                       }
@@ -64,13 +87,27 @@ jobs:
                 return;
               }
 
+              const doneColumn = projectItemsResult.node.fields.nodes.find(field => field.name === "Done");
+
+              if (!doneColumn) {
+                core.setFailed("Coluna 'Done' não encontrada no projeto.");
+                return;
+              }
+
+              const doneOption = doneColumn.options.find(option => option.name === "Done");
+
+              if (!doneOption) {
+                core.setFailed("Opção 'Done' não encontrada na coluna 'Done'.");
+                return;
+              }
+
               const moveIssueMutation = `
                 mutation {
-                  updateProjectV2ItemFieldValue(input: {
+                  updateProjectV2ItemPosition(input: {
                     projectId: "${projectId}",
                     itemId: "${item.id}",
-                    fieldId: "status",
-                    value: "Done"
+                    afterId: null,
+                    fieldValueId: "${doneOption.id}"
                   }) {
                     projectV2Item {
                       id
