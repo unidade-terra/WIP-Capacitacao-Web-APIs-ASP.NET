@@ -31,7 +31,6 @@ jobs:
           script: |
             const jwt = require('jsonwebtoken');
             const fs = require('fs');
-            const fetch = require('node-fetch');
 
             const appId = process.env.APP_ID;
             const privateKey = process.env.APP_PRIVATE_KEY; # Renamed secret
