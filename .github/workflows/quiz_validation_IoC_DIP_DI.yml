@@ -11,6 +11,10 @@ on:
         description: 'The project ID'
         required: true
         type: string
+      installation_token: # Expect the token as input
+        description: 'The installation token'
+        required: true
+        type: string
       other_project_data:
         description: 'The full json payload of the github project event'
         required: true
@@ -23,88 +27,12 @@ jobs:
   move_issue:
     runs-on: ubuntu-latest
     steps:
-      - name: Generate GitHub App Token
-        id: generate-token
-        uses: actions/github-script@v6
-        env:
-          APP_ID: 1185682
-        with:
-          script: |
-            const jwt = require('jsonwebtoken');
-            const fs = require('fs');
-
-            const appId = process.env.APP_ID;
-            const privateKey = process.env.APP_PRIVATE_KEY;
-
-            const now = Math.floor(Date.now() / 1000);
-            const payload = {
-              iat: now,
-              exp: now + (10 * 60),
-              iss: appId,
-            };
-
-            const token = jwt.sign(payload, privateKey, { algorithm: 'RS256' });
-
-            const installationQuery = `
-              query {
-                viewer {
-                  installations(first: 100) {
-                    nodes {
-                      id
-                      appId
-                      account {
-                        __typename
-                        ... on Organization {
-                          login
-                        }
-                        ... on User {
-                          login
-                        }
-                      }
-                    }
-                  }
-                }
-              }
-            `;
-
-            const installationResponse = await github.graphql(installationQuery, {
-              headers: {
-                authorization: `Bearer ${token}`,
-              },
-            });
-
-            const installations = installationResponse.viewer.installations.nodes;
-            const appInstallation = installations.find(installation => installation.appId === parseInt(appId));
-
-            if (!appInstallation) {
-              core.setFailed(`GitHub App installation not found.`);
-              return;
-            }
-
-            const installationId = appInstallation.id;
-
-            const response = await fetch(`https://api.github.com/app/installations/${installationId}/access_tokens`, {
-              method: 'POST',
-              headers: {
-                Authorization: `Bearer ${token}`,
-                Accept: 'application/vnd.github.v3+json`,
-              },
-            });
-
-            if (!response.ok) {
-              throw new Error(`Failed to get installation access token: ${response.status} ${response.statusText}`);
-            }
-
-            const data = await response.json();
-            console.log(`token=${data.token}`);
-            core.setOutput('token', data.token);
-
       - name: Move issue 6 to Done Column (GraphQL)
         uses: actions/github-script@v6
         with:
-          github-token: ${{ steps.generate-token.outputs.token }} #Corrected output
+          github-token: ${{ github.event.inputs.installation_token }} # Use the token from input
           script: |
-            try{
+            try {
               const projectId = "${{ github.event.inputs.project_id }}";
               const issueNumber = 6;
               console.log(`Moving issue #${issueNumber} to Done in project: ${projectId}`);
@@ -182,6 +110,7 @@ jobs:
 
               const moveResult = await github.graphql(moveIssueMutation);
               console.log(`[DEBUG] Move Issue Result: ${JSON.stringify(moveResult)}`);
-            }catch(error){
+            } catch (error) {
               core.setFailed(error.message);
+              console.error(error);
             }
