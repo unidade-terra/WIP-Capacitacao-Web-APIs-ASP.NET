@@ -18,6 +18,20 @@ on:
 
 permissions: write-all
 
+name: Validar Quiz IoC, DIP e DI (Primeira Alternativa Correta)
+
+on:
+  workflow_dispatch:
+    inputs:
+      project_id:
+        description: 'The project ID'
+        required: true
+        type: string
+
+permissions:
+  projects: write
+  issues: write
+
 jobs:
   validar_quiz:
     runs-on: ubuntu-latest
@@ -144,12 +158,17 @@ jobs:
                   const reviewColumnId = projectColumns.data[1].id;
                   const doneColumnId = projectColumns.data[2].id;
 
-                  // Busca todos os cards na coluna "Review"
+                  // Log de todos os cards em todas as colunas
+                  for (const column of projectColumns.data) {
+                    const cards = await github.rest.projects.listCards({
+                      column_id: column.id,
+                    });
+                    console.log(`[DEBUG] Cards na coluna ${column.name} (${column.id}): ${JSON.stringify(cards.data, null, 2)}`);
+                  }
+
                   const projectCards = await github.rest.projects.listCards({
                     column_id: reviewColumnId,
                   });
-
-                  console.log(`[DEBUG] Cards na coluna Review: ${JSON.stringify(projectCards.data, null, 2)}`); // Log de todos os cards
 
                   const cardToMove = projectCards.data.find(card => card.content_url === issue.html_url);
 
