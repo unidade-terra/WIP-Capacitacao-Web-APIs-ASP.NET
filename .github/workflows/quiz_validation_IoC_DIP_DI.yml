@@ -32,7 +32,7 @@ jobs:
             console.log("Project Id:", "${{ github.event.inputs.project_id }}");
 
             const projectId = "${{ github.event.inputs.project_id }}";
-            const issueNumber = context.issue.number;
+            const issueNumber = 6;
 
             console.log(`Issue Number: ${issueNumber}`);
 
