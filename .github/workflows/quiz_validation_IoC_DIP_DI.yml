@@ -80,11 +80,7 @@ jobs:
 
               const moveResult = await github.graphql(moveIssueMutation);
               console.log(`[DEBUG] Move Issue Result: ${JSON.stringify(moveResult)}`);
-            } catch (error) {
-              core.setFailed(`Error moving issue: ${error.message}`);
-              console.error(`Error: ${error}`);
-            }
-            } catch (error) {
+            } catch (error) { // Verify that the try catch block is correct.
               core.setFailed(`Error moving issue: ${error.message}`);
               console.error(`Error: ${error}`);
             }
