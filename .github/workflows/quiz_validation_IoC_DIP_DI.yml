@@ -15,34 +15,46 @@ on:
         description: 'The full json payload of the github project event'
         required: true
         type: string
+  push:
+    paths:
+      - '.github/workflows/quiz_validation_IoC_DIP_DI.yml'
 
-permissions: write-all
+permissions: # Correct placement: at the top level
+  issues: write
+  projects: write
 
 jobs:
-  validar_quiz_e_mover:
+  validar_quiz:
     runs-on: ubuntu-latest
     steps:
-      - name: Buscar Issue pelo Nome
-        id: buscar_issue
+      - name: Get Issue Number from Node ID
+        id: get_issue_number
         uses: actions/github-script@v6
         with:
           script: |
-            const issueName = "Desafio quiz: IoC, DIP e DI";
-            console.log(`[DEBUG] Issue Name: ${issueName}`);
-            const issues = await github.rest.issues.listForRepo({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              state: "all",
-            });
-            console.log(`[DEBUG] Issues: ${JSON.stringify(issues.data)}`);
-            const issue = issues.data.find(issue => issue.title === issueName);
-            if (!issue) {
-              core.setFailed(`Issue com o nome "${issueName}" não encontrado.`);
+            const contentNodeId = "${{ github.event.inputs.content_node_id }}";
+            const query = `
+              query {
+                node(id: "${contentNodeId}") {
+                  ... on Issue {
+                    number
+                  }
+                }
+              }
+            `;
+
+            try {
+              const response = await github.graphql(query);
+              if (response && response.node && response.node.number) {
+                return response.node.number;
+              } else {
+                core.setFailed("Failed to retrieve issue number from node ID.");
+                return null;
+              }
+            } catch (error) {
+              core.setFailed(`GraphQL query failed: ${error.message}`);
               return null;
             }
-
-            console.log(`[DEBUG] Issue Number: ${issue.number}`);
-            return issue.number;
 
       - name: Checkout do código
         uses: actions/checkout@v2
@@ -52,41 +64,43 @@ jobs:
         uses: actions/github-script@v6
         with:
           script: |
-            const issueNumber = ${{ steps.buscar_issue.outputs.result }};
-            console.log(`[DEBUG] Issue Number para obter corpo: ${issueNumber}`);
+            const issueNumber = ${{ steps.get_issue_number.outputs.result }};
             if (!issueNumber) return;
-            try {
+
+            try{
               const issueBody = await github.rest.issues.get({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 issue_number: issueNumber,
               }).then(result => result.data.body);
+
               if (!issueBody) {
                 console.log(`Issue number ${issueNumber} body not found.`);
                 return;
               }
-              console.log(`[DEBUG] Issue Body: ${issueBody}`);
+
               return issueBody;
             } catch (error) {
               core.setFailed(`Failed to retrieve issue body: ${error.message}`);
               return;
             }
 
-      - name: Validar respostas do quiz e mover card
-        id: validar_respostas_e_mover
+      - name: Validar respostas do quiz
+        id: validar_respostas
         uses: actions/github-script@v6
         with:
           script: |
             const issueBody = ${{ steps.obter_issue.outputs.result }};
-            const issueNumber = ${{ steps.buscar_issue.outputs.result }};
-            const projectId = "${{ github.event.inputs.project_id }}";
+            const issueNumber = ${{ steps.get_issue_number.outputs.result }};
             if (!issueBody || !issueNumber) return;
+
             const respostasCorretas = {
               "1": "Uma disciplina.",
               "2": "Sim.",
               "3": "Um padrão de design que permite injetar dependências, proporcionando baixo acoplamento.",
-              "4": "IoC estabelece que as abstrações não devem depender de implementações concretas, enquanto DIP define que os módulos de alto nível não devem depender dos módulos de baixo nível."
+              "4": "*IoC* estabelece que as abstrações não devem depender de implementações concretas, enquanto *DIP* define que os módulos de alto nível não devem depender dos módulos de baixo nível."
             };
+
             const respostasUsuario = {};
             const perguntas = issueBody.split("# ");
 
@@ -101,55 +115,64 @@ jobs:
               });
             });
 
+            let feedback = "## Resultado do Quiz\n\n";
             let todasCorretas = true;
 
             for (const numeroPergunta in respostasCorretas) {
-              if (respostasUsuario[numeroPergunta] !== respostasCorretas[numeroPergunta]) {
+              if (respostasUsuario[numeroPergunta] === respostasCorretas[numeroPergunta]) {
+                feedback += `✅ Pergunta ${numeroPergunta}: Resposta correta!\n`;
+              } else {
+                feedback += `❌ Pergunta ${numeroPergunta}: Resposta incorreta. Resposta correta: ${respostasCorretas[numeroPergunta]}\n`;
                 todasCorretas = false;
-                break;
               }
             }
 
             if (todasCorretas) {
-              try {
-                const projectColumns = await github.rest.projects.listColumns({
-                  project_id: projectId,
+              feedback += "\nParabéns! Você acertou todas as perguntas do quiz.";
+              core.setOutput('todas_corretas', 'true');
+            } else {
+              feedback += "\nPor favor, revise suas respostas and tente novamente.";
+              core.setOutput('todas_corretas', 'false');
+            }
+
+            try{
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issueNumber,
+                body: feedback,
+              });
+            } catch(error){
+              core.setFailed(`Failed to create issue comment: ${error.message}`);
+            }
+
+      - name: Move Card to Done (If All Correct)
+        if: steps.validar_respostas.outputs.todas_corretas == 'true'
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const projectId = "${{ github.event.inputs.project_id }}";
+            const issueNumber = ${{ steps.get_issue_number.outputs.result }};
+
+            try{
+              const columns = await github.rest.projects.listColumns({
+                project_id: projectId,
+                per_page: 100
+              });
+
+              if (columns.data.length < 3) {
+                core.setFailed("Project does not have at least three columns.");
+                return;
+              }
+
+              const doneColumn = columns.data[2]; // Assumes the third column is "Done"
+
+              let issueCard = null;
+
+              for (const column of columns.data) {
+                const cards = await github.rest.projects.listCards({
+                  column_id: column.id,
+                  per_page: 100
                 });
 
-                console.log(`[DEBUG] Project Columns: ${JSON.stringify(projectColumns.data)}`);
-
-                if (projectColumns && projectColumns.data && projectColumns.data.length > 1) {
-                  const reviewColumn = projectColumns.data[1];
-                  const doneColumn = projectColumns.data.find(column => column.name === "Done"); // Nome da coluna "Done" fixado
-
-                  console.log(`[DEBUG] Review Column: ${JSON.stringify(reviewColumn)}`);
-                  console.log(`[DEBUG] Done Column: ${JSON.stringify(doneColumn)}`);
-
-                  if (reviewColumn && doneColumn) {
-                    const doneColumnId = doneColumn.id;
-                    const issueId = (await github.rest.issues.get({owner: context.repo.owner, repo: context.repo.repo, issue_number: issueNumber})).data.node_id;
-
-                    const moveProjectItemMutation = `
-                      mutation {
-                        moveProjectItem(input: {
-                          itemId: "${issueId}",
-                          columnId: "${doneColumnId}"
-                        }) {
-                          projectItem {
-                            id
-                          }
-                        }
-                      }
-                    `;
-                    const result = await github.graphql(moveProjectItemMutation);
-                    console.log(`[DEBUG] GraphQL Result: ${JSON.stringify(result)}`);
-                  } else {
-                    console.log("Coluna 'Review' ou 'Done' não encontrada.");
-                  }
-                } else {
-                  console.log("Não foram encontradas colunas suficientes no projeto.");
-                }
-              } catch (error) {
-                core.setFailed(`Failed to move card: ${error.message}`);
-              }
-            }
+                issueCard = cards.data.find(card => card.content_url === `https://api.github.com
