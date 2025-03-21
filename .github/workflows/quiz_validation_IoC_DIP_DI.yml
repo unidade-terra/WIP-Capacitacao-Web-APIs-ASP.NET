@@ -22,83 +22,27 @@ jobs:
   move_issue:
     runs-on: ubuntu-latest
     steps:
-      - name: Add "Done" label to issue 6
+      - name: Add marker to issue 6 body
         uses: actions/github-script@v6
         with:
           github-token: ${{ secrets.ORG_PAT }}
           script: |
             const issueNumber = 6;
-            await github.rest.issues.addLabels({
+            await github.rest.issues.update({
               issue_number: issueNumber,
               owner: context.repo.owner,
               repo: context.repo.repo,
-              labels: ['Done']
+              body: "issue:done"
             });
-            console.log(`Added "Done" label to issue #${issueNumber}`);
-      - name: Move issue 6 to Done Column.
-        uses: actions/github-script@v6
+            console.log(`Added marker to issue #${issueNumber} body`);
+
+      - name: Move issue 6 to Done Column
+        uses: fojia/action-move-issues-to-column@master
         with:
-          github-token: ${{ secrets.ORG_PAT }}
-          script: |
-            const projectId = "${{ github.event.inputs.project_id }}";
-            const issueNumber = 6;
-            const projectItemsQuery = `
-              query {
-                node(id: "${projectId}") {
-                  ... on ProjectV2 {
-                    items(first: 100) {
-                      nodes {
-                        id
-                        content {
-                          ... on Issue {
-                            number
-                          }
-                        }
-                      }
-                    }
-                    fields(first: 100) {
-                      nodes {
-                        id
-                        name
-                        ... on ProjectV2ItemFieldSingleSelect {
-                          options {
-                            id
-                            name
-                          }
-                        }
-                      }
-                    }
-                  }
-                }
-              }
-            `;
-            try {
-              const projectItemsResult = await github.graphql(projectItemsQuery);
-              const projectItems = projectItemsResult.node.items.nodes;
-              const item = projectItems.find(i => i.content?.number === issueNumber);
-              if (!item) {
-                core.setFailed(`Issue ${issueNumber} não encontrada no projeto.`);
-                return;
-              }
-              const doneColumn = projectItemsResult.node.fields.nodes.find(field => field.__typename === "ProjectV2ItemFieldSingleSelect" && field.name === "Done");
-              const doneOption = doneColumn.options.find(option => option.name === "Done");
-              const moveIssueMutation = `
-                mutation {
-                  updateProjectV2ItemPosition(input: {
-                    projectId: "${projectId}",
-                    itemId: "${item.id}",
-                    afterId: null,
-                    fieldValueId: "${doneOption.id}"
-                  }) {
-                    projectV2Item {
-                      id
-                    }
-                  }
-                }
-              `;
-              const moveResult = await github.graphql(moveIssueMutation);
-              console.log(`[DEBUG] Move Issue Result: ${JSON.stringify(moveResult)}`);
-            } catch (error) {
-              core.setFailed(`Error moving issue: ${error.message}`);
-              console.error(`Error: ${error}`);
-            }
+          project: ${{ github.event.inputs.project_id }}
+          column: 'Done'
+          owner: ${{ github.repository_owner }}
+          repo: ${{ github.event.repository.name }}
+          type: 'repo'
+          github_token: ${{ secrets.ORG_PAT }}
+          marker: 'issue:done'
