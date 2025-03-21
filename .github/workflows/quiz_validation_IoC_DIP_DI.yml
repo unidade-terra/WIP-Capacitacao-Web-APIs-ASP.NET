@@ -27,7 +27,8 @@ jobs:
         uses: actions/github-script@v6
         with:
           script: |
-            const issueName = "Desafio quiz: IoC, DIP e DI"; // Nome da issue fixado
+            const issueName = "Desafio quiz: IoC, DIP e DI";
+            console.log(`[DEBUG] Issue Name: ${issueName}`);
             const issues = await github.rest.issues.listForRepo({
               owner: context.repo.owner,
               repo: context.repo.repo,
@@ -115,9 +116,14 @@ jobs:
                   project_id: projectId,
                 });
 
+                console.log(`[DEBUG] Project Columns: ${JSON.stringify(projectColumns.data)}`);
+
                 if (projectColumns && projectColumns.data && projectColumns.data.length > 1) {
                   const reviewColumn = projectColumns.data[1];
                   const doneColumn = projectColumns.data.find(column => column.name === "${{ github.event.inputs.done_column_name }}");
+
+                  console.log(`[DEBUG] Review Column: ${JSON.stringify(reviewColumn)}`);
+                  console.log(`[DEBUG] Done Column: ${JSON.stringify(doneColumn)}`);
 
                   if (reviewColumn && doneColumn) {
                     const doneColumnId = doneColumn.id;
