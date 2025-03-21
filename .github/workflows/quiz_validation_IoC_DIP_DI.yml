@@ -19,7 +19,7 @@ on:
 permissions: write-all
 
 jobs:
-  validar_quiz:
+  validar_quiz_e_mover:
     runs-on: ubuntu-latest
     steps:
       - name: Buscar Issue pelo Nome
@@ -41,7 +41,6 @@ jobs:
               return null;
             }
 
-            console.log(`[DEBUG] Issue Number: ${issue.number}`);
             return issue.number;
 
       - name: Checkout do código
@@ -73,8 +72,8 @@ jobs:
               return;
             }
 
-      - name: Validar respostas do quiz
-        id: validar_respostas
+      - name: Validar respostas do quiz e mover card
+        id: validar_respostas_e_mover
         uses: actions/github-script@v6
         with:
           script: |
@@ -104,79 +103,41 @@ jobs:
               });
             });
 
-            let feedback = "## Resultado do Quiz\n\n";
             let todasCorretas = true;
 
             for (const numeroPergunta in respostasCorretas) {
-              if (respostasUsuario[numeroPergunta] === respostasCorretas[numeroPergunta]) {
-                feedback += `✅ Pergunta ${numeroPergunta}: Resposta correta!\n`;
-              } else {
-                feedback += `❌ Pergunta ${numeroPergunta}: Resposta incorreta. Resposta correta: ${respostasCorretas[numeroPergunta]}\n`;
+              if (respostasUsuario[numeroPergunta] !== respostasCorretas[numeroPergunta]) {
                 todasCorretas = false;
+                break;
               }
             }
 
-            if (todasCorretas) {
-              feedback += "\nParabéns! Você acertou todas as perguntas do quiz.";
-            } else {
-              feedback += "\nPor favor, revise suas respostas e tente novamente.";
-            }
-
-            try {
-              await github.rest.issues.createComment({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                issue_number: issueNumber,
-                body: feedback,
-              });
-            } catch (error) {
-              core.setFailed(`Failed to create issue comment: ${error.message}`);
-            }
-
-            // Mover card se todas as respostas estiverem corretas
             if (todasCorretas) {
               try {
                 const projectColumns = await github.rest.projects.listColumns({
                   project_id: projectId,
                 });
 
-                if (projectColumns && projectColumns.data && projectColumns.data.length > 2) {
-                  const reviewColumnId = projectColumns.data[1].id;
-                  const doneColumnId = projectColumns.data[2].id;
+                if (projectColumns && projectColumns.data && projectColumns.data.length > 0) {
+                  const doneColumn = projectColumns.data.find(column => column.name === "Done");
 
-                  // Log de todos os cards em todas as colunas
-                  for (const column of projectColumns.data) {
-                    const cards = await github.rest.projects.listCards({
-                      column_id: column.id,
-                    });
-                    console.log(`[DEBUG] Cards na coluna ${column.name} (${column.id}): ${JSON.stringify(cards.data, null, 2)}`);
-                  }
+                  if (doneColumn) {
+                    const doneColumnId = doneColumn.id;
+                    const issueId = (await github.rest.issues.get({owner: context.repo.owner, repo: context.repo.repo, issue_number: issueNumber})).data.id;
 
-                  const projectCards = await github.rest.projects.listCards({
-                    column_id: reviewColumnId,
-                  });
-
-                  const cardToMove = projectCards.data.find(card => card.content_url === issue.html_url);
-
-                  if (cardToMove) {
-                    console.log(`[DEBUG] Card to Move: ${JSON.stringify(cardToMove)}`);
-                    console.log(`[DEBUG] Card ID: ${cardToMove.id}`);
-                    console.log(`[DEBUG] Done Column ID: ${doneColumnId}`);
-
-                    await github.rest.projects.moveCard({
-                      card_id: cardToMove.id,
-                      position: "bottom",
-                      column_id: doneColumnId,
-                    }).then(result => {
-                        console.log(`[DEBUG] moveCard Result: ${result.status}`);
-                    });
+                    const cardId = await $`curl -s -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" "https://api.github.com/projects/columns/${doneColumnId}/cards" | jq ".[] | select(.content_id == ${issueId}) | .id"`;
+                    if (cardId) {
+                      await $`curl -X POST -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" -H "Accept: application/vnd.github.inertia-preview+json" -d '{"position":"top"}' "https://api.github.com/projects/columns/cards/${cardId}/moves"`;
+                    } else {
+                      console.log("Card não encontrado na coluna Done.");
+                    }
                   } else {
-                    console.log("Card associado ao issue não encontrado na coluna Review.");
+                    console.log("Coluna 'Done' não encontrada.");
                   }
                 } else {
-                  console.log("Coluna 'Review' ou 'Done' não encontrada ou projeto tem menos de 3 colunas.");
+                  console.log("Não foram encontradas colunas no projeto.");
                 }
-              } catch (moveError) {
-                core.setFailed(`Falha ao mover card: ${moveError.message}`);
+              } catch (error) {
+                core.setFailed(`Failed to move card: ${error.message}`);
               }
             }
