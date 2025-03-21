@@ -141,13 +141,15 @@ jobs:
                 });
 
                 if (projectColumns && projectColumns.data && projectColumns.data.length > 2) {
-                  const reviewColumnId = projectColumns.data[1].id; // Review é a segunda coluna
-                  const doneColumnId = projectColumns.data[2].id; // Done é a terceira coluna
+                  const reviewColumnId = projectColumns.data[1].id;
+                  const doneColumnId = projectColumns.data[2].id;
 
-                  // Busca o card associado ao issue
+                  // Busca todos os cards na coluna "Review"
                   const projectCards = await github.rest.projects.listCards({
-                    column_id: reviewColumnId, // Busca cards na coluna Review
+                    column_id: reviewColumnId,
                   });
+
+                  console.log(`[DEBUG] Cards na coluna Review: ${JSON.stringify(projectCards.data, null, 2)}`); // Log de todos os cards
 
                   const cardToMove = projectCards.data.find(card => card.content_url === issue.html_url);
 
