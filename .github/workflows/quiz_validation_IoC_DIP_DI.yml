@@ -19,135 +19,15 @@ on:
 permissions: write-all
 
 jobs:
-  validar_quiz:
+  mover_issue:
     runs-on: ubuntu-latest
     steps:
-      - name: Get Issue Number from Node ID
-        id: get_issue_number
-        uses: actions/github-script@v6
-        with:
-          script: |
-            const contentNodeId = "${{ github.event.inputs.content_node_id }}";
-            const query = `
-              query {
-                node(id: "${contentNodeId}") {
-                  ... on Issue {
-                    number
-                  }
-                }
-              }
-            `;
-
-            try {
-              const response = await github.graphql(query);
-              if (response && response.node && response.node.number) {
-                return response.node.number;
-              } else {
-                core.setFailed("Failed to retrieve issue number from node ID.");
-                return null;
-              }
-            } catch (error) {
-              core.setFailed(`GraphQL query failed: ${error.message}`);
-              return null;
-            }
-
-      - name: Checkout do código
-        uses: actions/checkout@v2
-
-      - name: Obter conteúdo da issue
-        id: obter_issue
-        uses: actions/github-script@v6
-        with:
-          script: |
-            const issueNumber = ${{ steps.get_issue_number.outputs.result }};
-            if (!issueNumber) return;
-
-            try{
-              const issueBody = await github.rest.issues.get({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                issue_number: issueNumber,
-              }).then(result => result.data.body);
-
-              if (!issueBody) {
-                console.log(`Issue number ${issueNumber} body not found.`);
-                return;
-              }
-
-              return issueBody;
-            } catch (error) {
-              core.setFailed(`Failed to retrieve issue body: ${error.message}`);
-              return;
-            }
-
-      - name: Validar respostas do quiz
-        id: validar_respostas
-        uses: actions/github-script@v6
-        with:
-          script: |
-            const issueBody = ${{ steps.obter_issue.outputs.result }};
-            const issueNumber = ${{ steps.get_issue_number.outputs.result }};
-            if (!issueBody || !issueNumber) return;
-
-            const respostasCorretas = {
-              "1": "Uma disciplina.",
-              "2": "Sim.",
-              "3": "Um padrão de design que permite injetar dependências, proporcionando baixo acoplamento.",
-              "4": "*IoC* estabelece que as abstrações não devem depender de implementações concretas, enquanto *DIP* define que os módulos de alto nível não devem depender dos módulos de baixo nível."
-            };
-
-            const respostasUsuario = {};
-            const perguntas = issueBody.split("# ");
-
-            perguntas.slice(1).forEach(pergunta => {
-              const numeroPergunta = pergunta.split(" - ")[0];
-              const opcoes = pergunta.split("- [");
-
-              opcoes.slice(1).forEach(opcao => {
-                if (opcao.startsWith("x")) {
-                  respostasUsuario[numeroPergunta] = opcao.split("] ")[1].trim();
-                }
-              });
-            });
-
-            let feedback = "## Resultado do Quiz\n\n";
-            let todasCorretas = true;
-
-            for (const numeroPergunta in respostasCorretas) {
-              if (respostasUsuario[numeroPergunta] === respostasCorretas[numeroPergunta]) {
-                feedback += `✅ Pergunta ${numeroPergunta}: Resposta correta!\n`;
-              } else {
-                feedback += `❌ Pergunta ${numeroPergunta}: Resposta incorreta. Resposta correta: ${respostasCorretas[numeroPergunta]}\n`;
-                todasCorretas = false;
-              }
-            }
-
-            if (todasCorretas) {
-              feedback += "\nParabéns! Você acertou todas as perguntas do quiz.";
-              core.setOutput('todas_corretas', 'true');
-            } else {
-              feedback += "\nPor favor, revise suas respostas e tente novamente.";
-              core.setOutput('todas_corretas', 'false');
-            }
-
-            try{
-              await github.rest.issues.createComment({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                issue_number: issueNumber,
-                body: feedback,
-              });
-            } catch(error){
-              core.setFailed(`Failed to create issue comment: ${error.message}`);
-            }
-
-      - name: Mover issue para a coluna Done (se todas corretas)
-        if: steps.validar_respostas.outputs.todas_corretas == 'true'
+      - name: Mover Issue para Done
         uses: actions/github-script@v6
         with:
           script: |
             const projectId = "${{ github.event.inputs.project_id }}";
-            const issueId = "${{ github.event.inputs.content_node_id }}";
+            const issueNumber = 6;
 
             const projectItemsQuery = `
               query {
@@ -157,7 +37,9 @@ jobs:
                       nodes {
                         id
                         content {
-                          ... on Issue { id }
+                          ... on Issue {
+                            number
+                          }
                         }
                       }
                     }
@@ -168,9 +50,10 @@ jobs:
 
             const projectItemsResult = await github.graphql(projectItemsQuery);
             const projectItems = projectItemsResult.node.items.nodes;
-            const item = projectItems.find(i => i.content?.id === issueId);
+            const item = projectItems.find(i => i.content?.number === issueNumber);
+
             if (!item) {
-              core.setFailed("Item não encontrado no projeto.");
+              core.setFailed("Issue não encontrada no projeto.");
               return;
             }
 
