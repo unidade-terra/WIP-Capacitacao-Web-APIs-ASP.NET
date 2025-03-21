@@ -129,7 +129,7 @@ jobs:
               feedback += "\nParabéns! Você acertou todas as perguntas do quiz.";
               core.setOutput('todas_corretas', 'true');
             } else {
-              feedback += "\nPor favor, revise suas respostas and tente novamente.";
+              feedback += "\nPor favor, revise suas respostas e tente novamente.";
               core.setOutput('todas_corretas', 'false');
             }
 
@@ -144,33 +144,52 @@ jobs:
               core.setFailed(`Failed to create issue comment: ${error.message}`);
             }
 
-      - name: Move Card to Done (If All Correct)
+      - name: Mover issue para a coluna Done (se todas corretas)
         if: steps.validar_respostas.outputs.todas_corretas == 'true'
         uses: actions/github-script@v6
         with:
           script: |
             const projectId = "${{ github.event.inputs.project_id }}";
-            const issueNumber = ${{ steps.get_issue_number.outputs.result }};
-
-            try{
-              const columns = await github.rest.projects.listColumns({
-                project_id: projectId,
-                per_page: 100
-              });
-
-              if (columns.data.length < 3) {
-                core.setFailed("Project does not have at least three columns.");
-                return;
+            const issueId = "${{ github.event.inputs.content_node_id }}";
+            
+            const columnsQuery = `
+              query {
+                node(id: "${projectId}") {
+                  ... on ProjectV2 {
+                    fields(first: 10) {
+                      nodes {
+                        id
+                        name
+                      }
+                    }
+                  }
+                }
               }
-
-              const doneColumn = columns.data[2]; // Assumes the third column is "Done"
-
-              let issueCard = null;
-
-              for (const column of columns.data) {
-                const cards = await github.rest.projects.listCards({
-                  column_id: column.id,
-                  per_page: 100
-                });
-
-                issueCard = cards.data.find(card => card.content_url === `https://api.github.com
+            `;
+            
+            const columnsResult = await github.graphql(columnsQuery);
+            const columns = columnsResult.node.fields.nodes;
+            
+            const doneColumn = columns.find(col => col.name === "Done");
+            if (!doneColumn) {
+              core.setFailed("Coluna Done não encontrada.");
+              return;
+            }
+            
+            const moveIssueMutation = `
+              mutation {
+                moveProjectV2Item(input: {
+                  projectId: "${projectId}",
+                  itemId: "${issueId}",
+                  fieldId: "${doneColumn.id}",
+                  value: "DONE"
+                }) {
+                  projectV2Item {
+                    id
+                  }
+                }
+              }
+            `;
+            
+            const moveResult = await github.graphql(moveIssueMutation);
+            console.log(`[DEBUG] Move Issue Result: ${JSON.stringify(moveResult)}`);
