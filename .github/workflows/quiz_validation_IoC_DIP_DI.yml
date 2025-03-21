@@ -19,7 +19,7 @@ on:
 permissions: write-all
 
 
-obs:
+jobs:
   mover_issue:
     runs-on: ubuntu-latest
     steps:
