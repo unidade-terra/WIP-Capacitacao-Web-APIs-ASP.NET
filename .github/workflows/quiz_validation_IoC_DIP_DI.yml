@@ -18,20 +18,6 @@ on:
 
 permissions: write-all
 
-name: Validar Quiz IoC, DIP e DI (Primeira Alternativa Correta)
-
-on:
-  workflow_dispatch:
-    inputs:
-      project_id:
-        description: 'The project ID'
-        required: true
-        type: string
-
-permissions:
-  projects: write
-  issues: write
-
 jobs:
   validar_quiz:
     runs-on: ubuntu-latest
