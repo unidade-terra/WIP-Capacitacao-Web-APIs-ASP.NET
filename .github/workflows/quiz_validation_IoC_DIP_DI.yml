@@ -26,7 +26,7 @@ jobs:
         id: generate-token
         uses: actions/github-script@v6
         env:
-          APP_ID: 1185682 # App ID
+          APP_ID: 1185682
         with:
           script: |
             const jwt = require('jsonwebtoken');
@@ -142,12 +142,17 @@ jobs:
             try {
               const projectItemsResult = await github.graphql(projectItemsQuery);
               const projectItems = projectItemsResult.node.items.nodes;
+
+              console.log(`[DEBUG] projectItems: ${JSON.stringify(projectItems)}`);
+
               const item = projectItems.find(i => i.content?.number === issueNumber);
 
               if (!item) {
                 core.setFailed(`Issue ${issueNumber} not found in project.`);
                 return;
               }
+
+              console.log(`[DEBUG] item.id: ${item.id}`);
 
               const doneColumn = projectItemsResult.node.fields.nodes.find(field => field.__typename === "ProjectV2ItemFieldSingleSelect" && field.name === "Done");
 
@@ -166,8 +171,8 @@ jobs:
               const moveIssueMutation = `
                 mutation {
                   updateProjectV2ItemPosition(input: {
-                    projectId: "<span class="math-inline">\{projectId\}",
-itemId\: "</span>{item.id}",
+                    projectId: "${projectId}",
+                    itemId: "${item.id}",
                     afterId: null,
                     fieldValueId: "${doneOption.id}"
                   }) {
