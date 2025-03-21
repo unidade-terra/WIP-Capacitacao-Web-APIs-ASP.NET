@@ -33,7 +33,7 @@ jobs:
             const fs = require('fs');
 
             const appId = process.env.APP_ID;
-            const privateKey = process.env.APP_PRIVATE_KEY; # Renamed secret
+            const privateKey = process.env.APP_PRIVATE_KEY;
 
             const now = Math.floor(Date.now() / 1000);
             const payload = {
@@ -44,7 +44,6 @@ jobs:
 
             const token = jwt.sign(payload, privateKey, { algorithm: 'RS256' });
 
-            // Get Installation ID
             const installationQuery = `
               query {
                 viewer {
@@ -102,7 +101,7 @@ jobs:
       - name: Move issue 6 to Done Column (GraphQL)
         uses: actions/github-script@v6
         with:
-          github-token: ${{ steps.generate-token.outputs.token }} # Use output token.
+          github-token: ${{ steps.generate-token.outputs.token }}
           script: |
             const projectId = "${{ github.event.inputs.project_id }}";
             const issueNumber = 6;
@@ -167,8 +166,8 @@ jobs:
               const moveIssueMutation = `
                 mutation {
                   updateProjectV2ItemPosition(input: {
-                    projectId: "${projectId}",
-                    itemId: "${item.id}",
+                    projectId: "<span class="math-inline">\{projectId\}",
+itemId\: "</span>{item.id}",
                     afterId: null,
                     fieldValueId: "${doneOption.id}"
                   }) {
