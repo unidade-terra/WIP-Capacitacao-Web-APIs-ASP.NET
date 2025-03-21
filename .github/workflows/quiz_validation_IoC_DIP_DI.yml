@@ -25,7 +25,7 @@ jobs:
       - name: Mover Issue para Done
         uses: actions/github-script@v6
         with:
-          github-token: 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
+          github-token: "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"
           script: |
             const projectId = "${{ github.event.inputs.project_id }}";
             const issueNumber = 6;
