@@ -15,9 +15,6 @@ on:
         description: 'The full json payload of the github project event'
         required: true
         type: string
-  push:
-    paths:
-      - '.github/workflows/quiz_validation_IoC_DIP_DI.yml'
 
 permissions: write-all
 
