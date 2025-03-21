@@ -54,13 +54,10 @@ jobs:
                         id
                         name
                         fieldDefinition {
-                          ... on ProjectV2FieldConfiguration {
-                            type
-                            singleSelect {
-                              options {
-                                id
-                                name
-                              }
+                          ... on ProjectV2FieldSingleSelect {
+                            options {
+                              id
+                              name
                             }
                           }
                         }
@@ -91,8 +88,8 @@ jobs:
               }
 
               // Handle the specific "singleSelect" fields from the columns
-              const doneOption = doneColumn.fieldDefinition?.singleSelect?.options.find(option => option.name === "Done");
-              const reviewOption = reviewColumn.fieldDefinition?.singleSelect?.options.find(option => option.name === "Review");
+              const doneOption = doneColumn.fieldDefinition?.options.find(option => option.name === "Done");
+              const reviewOption = reviewColumn.fieldDefinition?.options.find(option => option.name === "Review");
 
               if (!doneOption || !reviewOption) {
                 core.setFailed("Opções 'Done' ou 'Review' não encontradas nas colunas.");
