@@ -15,9 +15,6 @@ on:
         description: 'The full json payload of the github project event'
         required: true
         type: string
-  push:
-    paths:
-      - '.github/workflows/quiz_validation.yml'
 
 permissions: write-all
 
@@ -34,7 +31,7 @@ jobs:
             const issues = await github.rest.issues.listForRepo({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              state: "all", // Busca issues abertas e fechadas
+              state: "all",
             });
 
             const issue = issues.data.find(issue => issue.title === issueName);
@@ -44,6 +41,7 @@ jobs:
               return null;
             }
 
+            console.log(`[DEBUG] Issue Number: ${issue.number}`);
             return issue.number;
 
       - name: Checkout do código
@@ -143,26 +141,33 @@ jobs:
                 });
 
                 if (projectColumns && projectColumns.data && projectColumns.data.length > 2) {
-                  const doneColumnId = projectColumns.data[2].id; // Assumindo "Done" é a terceira coluna
+                  const reviewColumnId = projectColumns.data[1].id; // Review é a segunda coluna
+                  const doneColumnId = projectColumns.data[2].id; // Done é a terceira coluna
 
                   // Busca o card associado ao issue
                   const projectCards = await github.rest.projects.listCards({
-                    column_id: projectColumns.data[0].id, // Assumindo que o card está na primeira coluna
+                    column_id: reviewColumnId, // Busca cards na coluna Review
                   });
 
                   const cardToMove = projectCards.data.find(card => card.content_url === issue.html_url);
 
                   if (cardToMove) {
+                    console.log(`[DEBUG] Card to Move: ${JSON.stringify(cardToMove)}`);
+                    console.log(`[DEBUG] Card ID: ${cardToMove.id}`);
+                    console.log(`[DEBUG] Done Column ID: ${doneColumnId}`);
+
                     await github.rest.projects.moveCard({
                       card_id: cardToMove.id,
                       position: "bottom",
                       column_id: doneColumnId,
+                    }).then(result => {
+                        console.log(`[DEBUG] moveCard Result: ${result.status}`);
                     });
                   } else {
-                    console.log("Card associado ao issue não encontrado.");
+                    console.log("Card associado ao issue não encontrado na coluna Review.");
                   }
                 } else {
-                  console.log("Coluna 'Done' não encontrada ou projeto tem menos de 3 colunas.");
+                  console.log("Coluna 'Review' ou 'Done' não encontrada ou projeto tem menos de 3 colunas.");
                 }
               } catch (moveError) {
                 core.setFailed(`Falha ao mover card: ${moveError.message}`);
