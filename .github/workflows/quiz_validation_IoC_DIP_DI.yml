@@ -34,6 +34,7 @@ jobs:
               repo: context.repo.repo,
               state: "all",
             });
+            console.log(`[DEBUG] Issues: ${JSON.stringify(issues.data)}`);
             const issue = issues.data.find(issue => issue.title === issueName);
 
             if (!issue) {
@@ -41,6 +42,7 @@ jobs:
               return null;
             }
 
+            console.log(`[DEBUG] Issue Number: ${issue.number}`);
             return issue.number;
 
       - name: Checkout do código
@@ -52,6 +54,7 @@ jobs:
         with:
           script: |
             const issueNumber = ${{ steps.buscar_issue.outputs.result }};
+            console.log(`[DEBUG] Issue Number para obter corpo: ${issueNumber}`);
             if (!issueNumber) return;
             try {
               const issueBody = await github.rest.issues.get({
@@ -64,7 +67,7 @@ jobs:
                 console.log(`Issue number ${issueNumber} body not found.`);
                 return;
               }
-
+              console.log(`[DEBUG] Issue Body: ${issueBody}`);
               return issueBody;
             } catch (error) {
               core.setFailed(`Failed to retrieve issue body: ${error.message}`);
@@ -120,7 +123,7 @@ jobs:
 
                 if (projectColumns && projectColumns.data && projectColumns.data.length > 1) {
                   const reviewColumn = projectColumns.data[1];
-                  const doneColumn = projectColumns.data.find(column => column.name === "${{ github.event.inputs.done_column_name }}");
+                  const doneColumn = projectColumns.data.find(column => column.name === "Done"); // Nome da coluna "Done" fixado
 
                   console.log(`[DEBUG] Review Column: ${JSON.stringify(reviewColumn)}`);
                   console.log(`[DEBUG] Done Column: ${JSON.stringify(doneColumn)}`);
@@ -152,4 +155,5 @@ jobs:
               } catch (error) {
                 core.setFailed(`Failed to move card: ${error.message}`);
               }
+            }
             }
