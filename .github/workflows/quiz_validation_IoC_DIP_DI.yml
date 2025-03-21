@@ -143,8 +143,3 @@ jobs:
                 core.setFailed(`Failed to move card: ${error.message}`);
               }
             }
-                }
-              } catch (error) {
-                core.setFailed(`Failed to move card: ${error.message}`);
-              }
-            }
