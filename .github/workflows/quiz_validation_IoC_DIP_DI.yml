@@ -148,38 +148,39 @@ jobs:
           script: |
             const projectId = "${{ github.event.inputs.project_id }}";
             const issueId = "${{ github.event.inputs.content_node_id }}";
-            
-            const columnsQuery = `
+
+            const projectItemsQuery = `
               query {
                 node(id: "${projectId}") {
                   ... on ProjectV2 {
-                    fields(first: 10) {
+                    items(first: 100) {
                       nodes {
                         id
-                        name
+                        content {
+                          ... on Issue { id }
+                        }
                       }
                     }
                   }
                 }
               }
             `;
-            
-            const columnsResult = await github.graphql(columnsQuery);
-            const columns = columnsResult.node.fields.nodes;
-            
-            const doneColumn = columns.find(col => col.name === "Done");
-            if (!doneColumn) {
-              core.setFailed("Coluna Done não encontrada.");
+
+            const projectItemsResult = await github.graphql(projectItemsQuery);
+            const projectItems = projectItemsResult.node.items.nodes;
+            const item = projectItems.find(i => i.content?.id === issueId);
+            if (!item) {
+              core.setFailed("Item não encontrado no projeto.");
               return;
             }
-            
+
             const moveIssueMutation = `
               mutation {
-                moveProjectV2Item(input: {
+                updateProjectV2ItemFieldValue(input: {
                   projectId: "${projectId}",
-                  itemId: "${issueId}",
-                  fieldId: "${doneColumn.id}",
-                  value: "DONE"
+                  itemId: "${item.id}",
+                  fieldId: "status",
+                  value: "Done"
                 }) {
                   projectV2Item {
                     id
@@ -187,6 +188,6 @@ jobs:
                 }
               }
             `;
-            
+
             const moveResult = await github.graphql(moveIssueMutation);
             console.log(`[DEBUG] Move Issue Result: ${JSON.stringify(moveResult)}`);
