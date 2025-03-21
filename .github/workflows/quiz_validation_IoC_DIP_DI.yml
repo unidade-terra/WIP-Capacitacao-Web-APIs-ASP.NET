@@ -27,7 +27,7 @@ jobs:
         uses: actions/github-script@v6
         with:
           script: |
-            const issueName = "Desafio quiz: IoC, DIP e DI";
+            const issueName = "${{ github.event.inputs.issue_title }}";
             const issues = await github.rest.issues.listForRepo({
               owner: context.repo.owner,
               repo: context.repo.repo,
@@ -120,19 +120,26 @@ jobs:
 
                 if (projectColumns && projectColumns.data && projectColumns.data.length > 1) {
                   const reviewColumn = projectColumns.data[1];
-                  const doneColumn = projectColumns.data.find(column => column.name === "Done");
+                  const doneColumn = projectColumns.data.find(column => column.name === "${{ github.event.inputs.done_column_name }}");
 
                   if (reviewColumn && doneColumn) {
-                    const reviewColumnId = reviewColumn.id;
                     const doneColumnId = doneColumn.id;
-                    const issueId = (await github.rest.issues.get({owner: context.repo.owner, repo: context.repo.repo, issue_number: issueNumber})).data.id;
+                    const issueId = (await github.rest.issues.get({owner: context.repo.owner, repo: context.repo.repo, issue_number: issueNumber})).data.node_id;
 
-                    const cardId = await $`curl -s -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" "https://api.github.com/projects/columns/${reviewColumnId}/cards" | jq ".[] | select(.content_id == ${issueId}) | .id"`;
-                    if (cardId) {
-                      await $`curl -X POST -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" -H "Accept: application/vnd.github.inertia-preview+json" -d '{"position":"top", "column_id": ${doneColumnId}}' "https://api.github.com/projects/columns/cards/${cardId}/moves"`;
-                    } else {
-                      console.log("Card não encontrado na coluna Review.");
-                    }
+                    const moveProjectItemMutation = `
+                      mutation {
+                        moveProjectItem(input: {
+                          itemId: "${issueId}",
+                          columnId: "${doneColumnId}"
+                        }) {
+                          projectItem {
+                            id
+                          }
+                        }
+                      }
+                    `;
+                    const result = await github.graphql(moveProjectItemMutation);
+                    console.log(`[DEBUG] GraphQL Result: ${JSON.stringify(result)}`);
                   } else {
                     console.log("Coluna 'Review' ou 'Done' não encontrada.");
                   }
