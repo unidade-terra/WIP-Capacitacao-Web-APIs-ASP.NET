@@ -19,18 +19,20 @@ on:
 permissions: write-all
 
 
-jobs:
+obs:
   mover_issue:
     runs-on: ubuntu-latest
     steps:
       - name: Mover Issue para Done
         uses: actions/github-script@v6
         with:
-          github-token: ${{ secrets.ORG_PAT }} # Uses ORG_PAT
+          github-token: ${{ secrets.ORG_PAT }}
           script: |
-            console.log("ORG_PAT Secret (Mover Issue):", "${{ secrets.ORG_PAT }}"); # Log the secret
+            console.log("ORG_PAT Secret (Mover Issue):", "${{ secrets.ORG_PAT }}");
             const projectId = "${{ github.event.inputs.project_id }}";
-            const issueNumber = 6;
+            const issueNumber = parseInt("${{ github.event.inputs.issue_number }}"); # Corrected line.
+
+            console.log(`Moving issue number: ${issueNumber}`);
 
             const projectItemsQuery = `
               query {
@@ -51,29 +53,34 @@ jobs:
               }
             `;
 
-            const projectItemsResult = await github.graphql(projectItemsQuery);
-            const projectItems = projectItemsResult.node.items.nodes;
-            const item = projectItems.find(i => i.content?.number === issueNumber);
+            try {
+              const projectItemsResult = await github.graphql(projectItemsQuery);
+              const projectItems = projectItemsResult.node.items.nodes;
+              const item = projectItems.find(i => i.content?.number === issueNumber);
 
-            if (!item) {
-              core.setFailed("Issue não encontrada no projeto.");
-              return;
-            }
+              if (!item) {
+                core.setFailed(`Issue ${issueNumber} não encontrada no projeto.`);
+                return;
+              }
 
-            const moveIssueMutation = `
-              mutation {
-                updateProjectV2ItemFieldValue(input: {
-                  projectId: "${projectId}",
-                  itemId: "${item.id}",
-                  fieldId: "status",
-                  value: "Done"
-                }) {
-                  projectV2Item {
-                    id
+              const moveIssueMutation = `
+                mutation {
+                  updateProjectV2ItemFieldValue(input: {
+                    projectId: "${projectId}",
+                    itemId: "${item.id}",
+                    fieldId: "status",
+                    value: "Done"
+                  }) {
+                    projectV2Item {
+                      id
+                    }
                   }
                 }
-              }
-            `;
+              `;
 
-            const moveResult = await github.graphql(moveIssueMutation);
-            console.log(`[DEBUG] Move Issue Result: ${JSON.stringify(moveResult)}`);
+              const moveResult = await github.graphql(moveIssueMutation);
+              console.log(`[DEBUG] Move Issue Result: ${JSON.stringify(moveResult)}`);
+            } catch (error) {
+              core.setFailed(`Error moving issue: ${error.message}`);
+              console.error(`Error: ${error}`);
+            }
