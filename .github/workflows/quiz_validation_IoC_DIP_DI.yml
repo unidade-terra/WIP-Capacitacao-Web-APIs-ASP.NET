@@ -1,112 +1,105 @@
-name: Validar Quiz IoC, DIP e DI (Primeira Alternativa Correta)
-
+name: Validar Quiz Riscos da Ausência de Versionamento
 on:
-  workflow_dispatch:
-    inputs:
-      content_node_id:
-        description: 'The content node ID (Issue ID)'
-        required: true
-        type: string
-      project_id:
-        description: 'The project ID'
-        required: true
-        type: string
-      other_project_data:
-        description: 'The full json payload of the github project event'
-        required: false
-        type: string
+  push:
+    paths:
+      - '.github/workflows/quiz_validation.yml'
 
-permissions: write-all
-
+permissions:
+  write-all # Still recommend narrowing this down
 
 jobs:
-  move_issue:
+  validar_quiz:
     runs-on: ubuntu-latest
     steps:
-      - name: Move issue 6 to Done Column (GraphQL)
+      - name: Checkout do código
+        uses: actions/checkout@v2
+
+      - name: Obter conteúdo da issue
+        id: obter_issue
         uses: actions/github-script@v6
         with:
-          github-token: ${{ github.event.inputs.installation_token }} # Use the token from input
           script: |
-            try {
-              const projectId = "${{ github.event.inputs.project_id }}";
-              const issueNumber = 6;
-              console.log(`Moving issue #${issueNumber} to Done in project: ${projectId}`);
-              const projectItemsQuery = `
-                query {
-                  node(id: "${projectId}") {
-                    ... on ProjectV2 {
-                      items(first: 100) {
-                        nodes {
-                          id
-                          content {
-                            ... on Issue {
-                              number
-                            }
-                          }
-                        }
-                      }
-                    }
-                    fields(first: 100) {
-                      nodes {
-                        id
-                        name
-                        ... on ProjectV2ItemFieldSingleSelect {
-                          options {
-                            id
-                            name
-                          }
-                        }
-                      }
-                    }
-                  }
-                }
-              `;
+            const issueTitulo = "Desafio quiz: Riscos da Ausência de Versionamento";
+            const issues = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'all',
+            });
 
-              const projectItemsResult = await github.graphql(projectItemsQuery);
-              const projectItems = projectItemsResult.node.items.nodes;
-              console.log(`[DEBUG] projectItems: ${JSON.stringify(projectItems)}`);
-              const item = projectItems.find(i => i.content?.number === issueNumber);
+            const issue = issues.data.find(i => i.title === issueTitulo);
 
-              if (!item) {
-                core.setFailed(`Issue ${issueNumber} not found in project.`);
-                return;
-              }
-
-              console.log(`[DEBUG] item.id: ${item.id}`);
-
-              const doneColumn = projectItemsResult.node.fields.nodes.find(field => field.__typename === "ProjectV2ItemFieldSingleSelect" && field.name === "Done");
-
-              if (!doneColumn) {
-                core.setFailed("Done column not found in project.");
-                return;
-              }
-
-              const doneOption = doneColumn.options.find(option => option.name === "Done");
-
-              if (!doneOption) {
-                core.setFailed("Done option not found in Done column.");
-                return;
-              }
-
-              const moveIssueMutation = `
-                mutation {
-                  updateProjectV2ItemPosition(input: {
-                    projectId: "${projectId}",
-                    itemId: "${item.id}",
-                    afterId: null,
-                    fieldValueId: "${doneOption.id}"
-                  }) {
-                    projectV2Item {
-                      id
-                    }
-                  }
-                }
-              `;
-
-              const moveResult = await github.graphql(moveIssueMutation);
-              console.log(`[DEBUG] Move Issue Result: ${JSON.stringify(moveResult)}`);
-            } catch (error) {
-              core.setFailed(error.message);
-              console.error(error);
+            if (!issue) {
+              console.log(`Issue "${issueTitulo}" não encontrada.`);
+              return null; // Return null if no issue found
             }
+
+            return issue.body;
+
+      - name: Validar respostas do quiz
+        id: validar_respostas
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const issueBody = ${{ steps.obter_issue.outputs.result }};
+            if (!issueBody) return;
+
+            const respostasCorretas = {
+              "1": "Fica difícil encontrar e corrigir os erros, atrasando o trabalho.",
+              "2": "A origem dos erros é difícil de encontrar, atrasando o trabalho.",
+              "3": "Não, sem um sistema de versionamento, a recuperação de versões anteriores do programa é altamente improvável e não confiável.",
+              "4": "Dificulta a colaboração, pois as alterações de múltiplos desenvolvedores podem se sobrepor e causar problemas.",
+              "5": "Fica mais difícil e demorado criar novas versões do programa."
+            };
+
+            const respostasUsuario = {};
+            const perguntas = issueBody.split("# ");
+
+            perguntas.slice(1).forEach(pergunta => {
+              const numeroPergunta = pergunta.split(" - ")[0];
+              const opcoes = pergunta.split("- [");
+
+              opcoes.slice(1).forEach(opcao => {
+                if (opcao.startsWith("x")) {
+                  respostasUsuario[numeroPergunta] = opcao.split("] ")[1].trim();
+                }
+              });
+            });
+
+            let feedback = "## Resultado do Quiz (triggered on push - potential issue target)\n\n";
+            let todasCorretas = true;
+
+            const issuesList = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'all',
+            });
+
+            const targetIssue = issuesList.data.find(i => i.title === "Desafio quiz: Riscos da Ausência de Versionamento");
+
+            if (targetIssue) {
+              for (const numeroPergunta in respostasCorretas) {
+                if (respostasUsuario[numeroPergunta] === respostasCorretas[numeroPergunta]) {
+                  feedback += `✅ Pergunta ${numeroPergunta}: Resposta correta!\n`;
+                } else {
+                  feedback += `❌ Pergunta ${numeroPergunta}: Resposta incorreta. Resposta correta: ${respostasCorretas[numeroPergunta]}\n`;
+                  todasCorretas = false;
+                }
+              }
+
+              if (todasCorretas) {
+                feedback += "\nParabéns! Você acertou todas as perguntas do quiz.";
+              } else {
+                feedback += "\nPor favor, revise suas respostas e tente novamente.";
+              }
+
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: targetIssue.number,
+                body: feedback,
+              });
+            } else {
+              console.log(`Não foi possível encontrar a issue "${issueTitulo}" para comentar.`);
+            }
+
+            return feedback; # Optionally return feedback
